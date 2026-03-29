@@ -8,10 +8,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        accent: '#E53935',       // your main red
+        primary: {
+          DEFAULT: '#0D47A1',
+          light: '#1565C0',
+          dark: '#0a2f6e',
+        },
+        secondary: {
+          DEFAULT: '#EF5350',
+          light: '#FF7043',
+          dark: '#E53935',
+        },
+        accent: '#E53935',
         'accent-light': '#EF5350',
         'accent-dark': '#C62828',
-      }
+      },
     },
   },
   plugins: [],

@@ -1,44 +1,56 @@
 <template>
   <MainLayout>
-    
-    <!-- Home Content -->
 
-    <div class="space-y-12">
+    <!-- Hero Section -->
+    <Hero />
 
-      <!-- Featured -->
-      <section>
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-black uppercase tracking-tighter border-l-4 border-accent pl-3">
-            Featured <span class="text-accent">Stories</span>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+
+      <!-- Featured Story -->
+      <section class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="h-8 w-1 bg-secondary rounded-full" />
+          <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
+            Featured <span class="text-secondary">Story</span>
           </h2>
         </div>
-
         <div @click="handleArticleClick(featuredNews)">
           <NewsCard :news="featuredNews" variant="featured" />
         </div>
       </section>
 
-      <!-- Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <!-- Content Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-        <!-- News -->
-        <div class="lg:col-span-2 space-y-8">
+        <!-- Latest News -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="h-8 w-1 bg-primary rounded-full" />
+              <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                Latest <span class="text-primary">News</span>
+              </h2>
+            </div>
+          </div>
 
-          <!-- Categories -->
-          <div class="flex flex-wrap gap-2 border-b pb-4">
+          <!-- Category Filter -->
+          <div class="flex flex-wrap gap-2 mb-8">
             <button
               v-for="cat in categories"
               :key="cat"
               @click="selectedCategory = cat"
-              class="px-3 py-1 rounded-full text-xs font-bold"
-              :class="selectedCategory === cat ? 'bg-primary text-white' : 'bg-white text-gray-600'"
+              class="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200"
+              :class="selectedCategory === cat
+                ? 'bg-primary text-white shadow-md'
+                : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'"
             >
               {{ cat }}
             </button>
           </div>
 
-          <!-- News List -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- News Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div
               v-for="news in latestNews"
               :key="news.id"
@@ -48,28 +60,30 @@
             </div>
           </div>
 
+          <!-- Empty state -->
+          <div v-if="latestNews.length === 0" class="text-center py-16 bg-white rounded-xl">
+            <p class="text-gray-400 text-sm">No articles found in this category.</p>
+          </div>
         </div>
 
         <!-- Sidebar -->
         <Sidebar />
 
       </div>
-
     </div>
 
   </MainLayout>
 </template>
 
 <script setup>
-
 import { ref, computed } from 'vue'
 import MainLayout from '@/Layouts/MainLayout.vue'
+import Hero from '@/Components/Hero.vue'
 import NewsCard from '@/Components/NewsCard.vue'
 import Sidebar from '@/Components/Sidebar.vue'
 import { MOCK_NEWS } from '@/data.js'
 
 const selectedCategory = ref('All')
-const selectedArticle = ref(null)
 
 const categories = [
   'All',
@@ -93,7 +107,6 @@ const latestNews = computed(() =>
 )
 
 const handleArticleClick = (article) => {
-  selectedArticle.value = article
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>
