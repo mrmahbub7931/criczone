@@ -8,10 +8,10 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
-
   body {
-    @apply font-sans text-gray-900;
+    @apply font-sans text-gray-900 bg-[#f0f2f5];
   }
 }
 
@@ -23,14 +23,12 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;

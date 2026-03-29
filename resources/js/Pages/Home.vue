@@ -1,64 +1,60 @@
 <template>
   <MainLayout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
 
-      <!-- Top Stories Section -->
-      <section class="mb-8">
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
-
-          <!-- Featured / Lead Story (left, spans 3 cols) -->
-          <div class="lg:col-span-3" @click="handleArticleClick(featuredNews)">
+      <!-- ===== Top Stories ===== -->
+      <section class="py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Lead story (large) -->
+          <div class="lg:col-span-7" @click="handleArticleClick(featuredNews)">
             <NewsCard :news="featuredNews" variant="featured" />
           </div>
-
-          <!-- Secondary Stories (right, spans 2 cols) -->
-          <div class="lg:col-span-2 flex flex-col gap-4">
+          <!-- Side stories (stacked) -->
+          <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
             <div
-              v-for="news in secondaryNews"
+              v-for="news in headlineNews"
               :key="news.id"
               @click="handleArticleClick(news)"
+              class="h-48 sm:h-44 lg:h-auto"
             >
-              <NewsCard :news="news" variant="horizontal" />
+              <NewsCard :news="news" variant="headline" />
             </div>
           </div>
-
         </div>
       </section>
 
-      <!-- Category Filter Bar -->
-      <div class="flex items-center gap-3 mb-6 overflow-x-auto scrollbar-hide pb-1">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest flex-shrink-0">Filter:</span>
-        <div class="flex gap-1.5">
+      <!-- ===== Category Tabs ===== -->
+      <div class="border-b border-gray-200 mb-6">
+        <div class="flex items-center gap-1 -mb-px overflow-x-auto scrollbar-hide">
           <button
             v-for="cat in categories"
             :key="cat"
             @click="selectedCategory = cat"
-            class="px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150"
+            class="px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-all duration-150"
             :class="selectedCategory === cat
-              ? 'bg-primary text-white shadow-sm'
-              : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'"
+              ? 'border-secondary text-secondary'
+              : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'"
           >
             {{ cat }}
           </button>
         </div>
       </div>
 
-      <!-- Main Content Grid: News + Sidebar -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- ===== Main Content: News Grid + Sidebar ===== -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12">
 
-        <!-- Latest News (2 cols) -->
-        <div class="lg:col-span-2">
+        <!-- News Grid -->
+        <div class="lg:col-span-8">
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-lg font-extrabold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-              <span class="w-1 h-5 bg-secondary rounded-full inline-block" />
+            <h2 class="flex items-center gap-2.5 text-lg font-black text-gray-900 uppercase tracking-wide">
+              <span class="w-1 h-6 bg-secondary rounded-full" />
               Latest News
             </h2>
-            <span class="text-xs text-gray-400">
-              {{ filteredLatestNews.length }} articles
+            <span class="text-xs text-gray-400 font-medium">
+              {{ filteredLatestNews.length }} article{{ filteredLatestNews.length !== 1 ? 's' : '' }}
             </span>
           </div>
 
-          <!-- News Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div
               v-for="news in filteredLatestNews"
@@ -70,27 +66,26 @@
           </div>
 
           <!-- Empty state -->
-          <div v-if="filteredLatestNews.length === 0" class="text-center py-20 bg-white rounded-xl shadow-sm">
-            <div class="text-gray-300 text-4xl mb-3">&#9776;</div>
-            <p class="text-gray-400 text-sm font-medium">No articles found in this category.</p>
+          <div v-if="filteredLatestNews.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-100">
+            <p class="text-gray-400 text-sm">No articles in this category yet.</p>
             <button
               @click="selectedCategory = 'All'"
-              class="mt-3 text-xs font-semibold text-primary hover:text-secondary transition-colors"
+              class="mt-2 text-xs font-bold text-primary hover:text-secondary transition-colors"
             >
-              View all articles
+              Show all articles
             </button>
           </div>
 
           <!-- Load More -->
-          <div v-if="filteredLatestNews.length > 0" class="mt-8 text-center">
-            <button class="px-6 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all duration-150 shadow-sm">
-              Load More Articles
+          <div v-if="filteredLatestNews.length >= 4" class="mt-8 text-center">
+            <button class="px-8 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-bold transition-colors duration-150 shadow-md shadow-primary/20">
+              Load More
             </button>
           </div>
         </div>
 
-        <!-- Sidebar (1 col) -->
-        <div class="lg:col-span-1">
+        <!-- Sidebar -->
+        <div class="lg:col-span-4">
           <Sidebar />
         </div>
 
@@ -118,18 +113,14 @@ const categories = [
   'Analysis',
 ]
 
-// Lead / featured story
 const featuredNews = MOCK_NEWS.find(n => n.isFeatured) || MOCK_NEWS[0]
 
-// Secondary stories: next 3 after featured
-const secondaryNews = MOCK_NEWS
+// Two headline cards beside the featured
+const headlineNews = MOCK_NEWS
   .filter(n => n.id !== featuredNews.id)
-  .slice(0, 3)
+  .slice(0, 2)
 
-// IDs already shown in the top stories section
-const topStoryIds = new Set([featuredNews.id, ...secondaryNews.map(n => n.id)])
-
-// Remaining news for the grid (exclude top stories)
+const topStoryIds = new Set([featuredNews.id, ...headlineNews.map(n => n.id)])
 const remainingNews = MOCK_NEWS.filter(n => !topStoryIds.has(n.id))
 
 const filteredLatestNews = computed(() => {
@@ -137,7 +128,7 @@ const filteredLatestNews = computed(() => {
   return remainingNews.filter(n => n.category === selectedCategory.value)
 })
 
-const handleArticleClick = (article) => {
+const handleArticleClick = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>
