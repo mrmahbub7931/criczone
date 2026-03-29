@@ -1,11 +1,9 @@
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div class="min-h-screen flex flex-col bg-gray-50">
     <Header />
 
-    <main class="flex-grow bg-gray-50">
-      <div class="max-w-7xl mx-auto px-4 py-8">
-        <slot />
-      </div>
+    <main class="flex-grow">
+      <slot />
     </main>
 
     <Footer />
@@ -13,6 +11,6 @@
 </template>
 
 <script setup>
-import Header from '@/components/Header.vue'
-import Footer from '@/components/Footer.vue'
+import Header from '@/Components/Header.vue'
+import Footer from '@/Components/Footer.vue'
 </script>
