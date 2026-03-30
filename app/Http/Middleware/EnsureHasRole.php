@@ -13,8 +13,12 @@ class EnsureHasRole
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!$request->user() || !$request->user()->hasAnyRole($roles)) {
-            abort(403, 'Access denied.');
+        if (! $request->user()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        if (! $request->user()->hasAnyRole($roles)) {
+            return response()->json(['message' => 'Access denied. Required role: ' . implode(' or ', $roles)], 403);
         }
 
         return $next($request);
