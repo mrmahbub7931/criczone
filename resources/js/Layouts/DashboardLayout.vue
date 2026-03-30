@@ -116,12 +116,24 @@
           </Transition>
         </div>
 
-        <!-- User avatar -->
+        <!-- User + logout -->
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
-            AD
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {{ userInitials }}
           </div>
-          <span class="hidden sm:block text-sm font-medium text-gray-700">Admin</span>
+          <div class="hidden sm:block">
+            <p class="text-sm font-medium text-gray-700 leading-none">{{ auth.user?.name }}</p>
+            <p class="text-[11px] text-gray-400 mt-0.5 capitalize">{{ auth.roles?.join(', ') }}</p>
+          </div>
+          <Link
+            href="/logout"
+            method="post"
+            as="button"
+            class="ml-1 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Log out"
+          >
+            <LogOut :size="16" />
+          </Link>
         </div>
       </header>
 
@@ -138,7 +150,7 @@
 import { ref, computed } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
-  LayoutDashboard, Newspaper, Tag, Radio, Settings, ChevronLeft, Bell, Search, Menu,
+  LayoutDashboard, Newspaper, Tag, Radio, Settings, ChevronLeft, Bell, Search, Menu, LogOut,
 } from 'lucide-vue-next'
 import { useDashboard } from '@/composables/useDashboard.js'
 
@@ -151,6 +163,11 @@ const notifOpen  = ref(false)
 const searchQuery = ref('')
 
 const page = usePage()
+const auth = computed(() => page.props.auth)
+const userInitials = computed(() => {
+  const name = auth.value?.user?.name || ''
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+})
 
 const navItems = [
   { label: 'Overview',    href: '/dashboard',             icon: LayoutDashboard },

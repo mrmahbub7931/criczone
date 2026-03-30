@@ -1,25 +1,24 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Home
-Route::get('/', function () {
-    return Inertia::render('Home');
-})->name('home');
+// Public
+Route::get('/', fn () => Inertia::render('Home'))->name('home');
 
-// Category pages
-Route::get('/category/{slug}', function (string $slug) {
-    return Inertia::render('Home', [
-        'category' => $slug,
-    ]);
-})->name('category');
+Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Home', ['category' => $slug]))->name('category');
 
-// Dashboard (SPA)
-Route::prefix('dashboard')->group(function () {
-    Route::get('/',            fn() => Inertia::render('Dashboard/Overview'))->name('dashboard');
-    Route::get('/articles',    fn() => Inertia::render('Dashboard/Articles'))->name('dashboard.articles');
-    Route::get('/categories',  fn() => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
-    Route::get('/live-scores', fn() => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
-    Route::get('/settings',    fn() => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
+// Auth
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('guest');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Dashboard — requires login + admin or editor role
+Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(function () {
+    Route::get('/',            fn () => Inertia::render('Dashboard/Overview'))->name('dashboard');
+    Route::get('/articles',    fn () => Inertia::render('Dashboard/Articles'))->name('dashboard.articles');
+    Route::get('/categories',  fn () => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
+    Route::get('/live-scores', fn () => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
+    Route::get('/settings',    fn () => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
 });
