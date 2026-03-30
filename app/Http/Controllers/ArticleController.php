@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Article;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+class ArticleController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $articles = Article::with(['category:id,name', 'author:id,name'])
+            ->when($request->search, fn ($q, $s) =>
+                $q->where('title', 'like', "%{$s}%")
+                  ->orWhere('excerpt', 'like', "%{$s}%")
+            )
+            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+            ->when($request->category_id, fn ($q, $c) => $q->where('category_id', $c))
+            ->latest()
+            ->paginate($request->integer('per_page', 15));
+
+        return response()->json($articles);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title'          => ['required', 'string', 'max:255'],
+            'slug'           => ['required', 'string', 'max:255', 'unique:articles,slug'],
+            'excerpt'        => ['nullable', 'string'],
+            'content'        => ['required', 'string'],
+            'featured_image' => ['nullable', 'string', 'max:500'],
+            'category_id'    => ['required', 'integer', 'exists:categories,id'],
+            'status'         => ['required', Rule::in(['draft', 'published'])],
+            'is_featured'    => ['boolean'],
+            'published_at'   => ['nullable', 'date'],
+        ]);
+
+        $data['author_id']    = $request->user()->id;
+        $data['published_at'] = $data['status'] === 'published'
+            ? ($data['published_at'] ?? now())
+            : null;
+
+        return response()->json(
+            Article::create($data)->load(['category:id,name', 'author:id,name']),
+            201
+        );
+    }
+
+    public function update(Request $request, Article $article): JsonResponse
+    {
+        $data = $request->validate([
+            'title'          => ['sometimes', 'string', 'max:255'],
+            'slug'           => ['sometimes', 'string', 'max:255', Rule::unique('articles')->ignore($article->id)],
+            'excerpt'        => ['nullable', 'string'],
+            'content'        => ['sometimes', 'string'],
+            'featured_image' => ['nullable', 'string', 'max:500'],
+            'category_id'    => ['sometimes', 'integer', 'exists:categories,id'],
+            'status'         => ['sometimes', Rule::in(['draft', 'published'])],
+            'is_featured'    => ['boolean'],
+            'published_at'   => ['nullable', 'date'],
+        ]);
+
+        if (isset($data['status']) && $data['status'] === 'published' && !$article->published_at) {
+            $data['published_at'] = now();
+        }
+
+        $article->update($data);
+
+        return response()->json($article->load(['category:id,name', 'author:id,name']));
+    }
+
+    public function destroy(Article $article): JsonResponse
+    {
+        $article->delete();
+
+        return response()->json(['message' => 'Article deleted.']);
+    }
+}

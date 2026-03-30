@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -9,6 +10,11 @@ use Illuminate\Support\Facades\Route;
 // so session-based auth works out of the box.
 
 Route::middleware('auth')->group(function () {
+
+    // ── Articles (admin + editor) ──────────────────────────────────────────
+    Route::middleware('role:admin,editor')->group(function () {
+        Route::apiResource('articles', ArticleController::class)->except('show');
+    });
 
     // ── Categories (admin + editor) ────────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {
