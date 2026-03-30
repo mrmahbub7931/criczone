@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,13 @@ Route::middleware('auth')->group(function () {
     // ── Image upload (admin + editor) ─────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {
         Route::post('upload-image', [UploadController::class, 'image']);
+    });
+
+    // ── Site Settings (admin only) ────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get ('settings',              [SettingController::class, 'index']);
+        Route::put ('settings',              [SettingController::class, 'update']);
+        Route::post('settings/upload-logo',  [SettingController::class, 'uploadLogo']);
     });
 
     // ── Articles (admin + editor) ──────────────────────────────────────────
