@@ -1,153 +1,175 @@
 import { ref, computed, reactive } from 'vue'
-import { MOCK_NEWS, LIVE_SCORES } from '@/data.js'
+import { LIVE_SCORES } from '@/data.js'
+import axios from 'axios'
 
-// ─── Reactive Articles Store ───────────────────────────────────────────────
-const articles = ref(
-  MOCK_NEWS.map(n => ({
-    ...n,
-    status: n.isFeatured ? 'published' : (n.id % 3 === 0 ? 'draft' : 'published'),
-    views: Math.floor(Math.random() * 90000) + 10000,
-  }))
-)
+// ─────────────────────────────────────────────────────────────────────────────
+// LIVE DATA  (fetched from API — replaces all mock values)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Reactive Live Scores Store ────────────────────────────────────────────
+const loading = ref(false)
+
+// Articles: populated by fetchDashboard()
+const articles = ref([])
+
+// Stats: populated by fetchDashboard()
+const stats = ref({
+  totalArticles:  0,
+  publishedCount: 0,
+  draftCount:     0,
+  featuredCount:  0,
+  totalViews:     0,
+  categories:     0,
+  users:          null,
+})
+
+// Chart: populated by fetchDashboard()
+const chartData = ref([
+  { day: 'Mon', date: '', articles: 0, views: 0 },
+  { day: 'Tue', date: '', articles: 0, views: 0 },
+  { day: 'Wed', date: '', articles: 0, views: 0 },
+  { day: 'Thu', date: '', articles: 0, views: 0 },
+  { day: 'Fri', date: '', articles: 0, views: 0 },
+  { day: 'Sat', date: '', articles: 0, views: 0 },
+  { day: 'Sun', date: '', articles: 0, views: 0 },
+])
+
+// Categories: populated by fetchDashboard()
+const categoriesData = ref([])
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATIC / UI STATE  (no real API — keep as-is)
+// ─────────────────────────────────────────────────────────────────────────────
+
 const liveScores = ref(
   LIVE_SCORES.map(m => ({ overs: '0.0', ...m }))
 )
 
-// ─── Reactive Categories Store ─────────────────────────────────────────────
-const categoriesData = reactive([
-  { id: 1, name: 'International', slug: 'international', color: '#0D47A1', articleCount: 0, description: 'Test, ODI, T20I international matches' },
-  { id: 2, name: 'IPL',           slug: 'ipl',           color: '#FF8F00', articleCount: 0, description: 'Indian Premier League coverage' },
-  { id: 3, name: 'T20',           slug: 't20',           color: '#2E7D32', articleCount: 0, description: 'T20 leagues and tournaments' },
-  { id: 4, name: 'Test Cricket',  slug: 'test-cricket',  color: '#6A1B9A', articleCount: 0, description: 'Five-day Test match coverage' },
-  { id: 5, name: 'Domestic',      slug: 'domestic',      color: '#AD1457', articleCount: 0, description: 'Domestic tournaments worldwide' },
-  { id: 6, name: 'Analysis',      slug: 'analysis',      color: '#00838F', articleCount: 0, description: 'Expert analysis and opinion' },
-])
-
-// sync article counts
-const syncCounts = () => {
-  categoriesData.forEach(cat => {
-    cat.articleCount = articles.value.filter(a => a.category === cat.name).length
-  })
-}
-syncCounts()
-
-// ─── Notifications ─────────────────────────────────────────────────────────
 const notifications = ref([
-  { id: 1, message: 'New comment on "India Clinches Historic Series Win"', time: '2m ago', read: false, type: 'comment' },
+  { id: 1, message: 'New comment on "India Clinches Historic Series Win"', time: '2m ago',  read: false, type: 'comment'  },
   { id: 2, message: 'Article "IPL Auction" is trending with 45K views',    time: '15m ago', read: false, type: 'trending' },
-  { id: 3, message: 'Live score update pushed for IND vs AUS',              time: '1h ago', read: true,  type: 'score' },
-  { id: 4, message: 'Draft "T20 World Cup Analysis" needs review',          time: '2h ago', read: true,  type: 'draft' },
+  { id: 3, message: 'Live score update pushed for IND vs AUS',              time: '1h ago',  read: true,  type: 'score'    },
+  { id: 4, message: 'Draft "T20 World Cup Analysis" needs review',          time: '2h ago',  read: true,  type: 'draft'    },
 ])
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 
-// ─── Stats ─────────────────────────────────────────────────────────────────
-const stats = computed(() => ({
-  totalArticles:  articles.value.length,
-  publishedCount: articles.value.filter(a => a.status === 'published').length,
-  draftCount:     articles.value.filter(a => a.status === 'draft').length,
-  totalViews:     articles.value.reduce((s, a) => s + a.views, 0),
-  liveMatches:    liveScores.value.length,
-  categories:     categoriesData.length,
-}))
+const sidebarCollapsed = ref(false)
 
-// ─── Chart Data (last 7 days views) ────────────────────────────────────────
-const chartData = ref([
-  { day: 'Mon', views: 12400, articles: 2 },
-  { day: 'Tue', views: 18700, articles: 3 },
-  { day: 'Wed', views: 15300, articles: 1 },
-  { day: 'Thu', views: 23100, articles: 4 },
-  { day: 'Fri', views: 31500, articles: 3 },
-  { day: 'Sat', views: 28900, articles: 2 },
-  { day: 'Sun', views: 41200, articles: 5 },
-])
+// ─────────────────────────────────────────────────────────────────────────────
+// API FETCH
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Actions ───────────────────────────────────────────────────────────────
-const deleteArticle = (id) => {
-  articles.value = articles.value.filter(a => a.id !== id)
-  syncCounts()
+let fetched = false  // guard — only fetch once per page lifecycle
+
+const fetchDashboard = async () => {
+  if (fetched || loading.value) return
+  loading.value = true
+  try {
+    const { data } = await axios.get('/api/dashboard')
+
+    // Stats
+    stats.value = data.stats
+
+    // Recent articles — normalise shape so the template works unchanged
+    articles.value = (data.recentArticles ?? []).map(a => ({
+      id:       a.id,
+      title:    a.title,
+      slug:     a.slug,
+      status:   a.status,
+      views:    a.views ?? 0,
+      category: a.category?.name  ?? '—',
+      author:   a.author?.name    ?? '—',
+      color:    a.category?.color ?? '#0D47A1',
+      date:     a.published_at
+                  ? new Date(a.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : 'Draft',
+    }))
+
+    // Chart data
+    if (Array.isArray(data.chartData) && data.chartData.length) {
+      chartData.value = data.chartData
+    }
+
+    // Categories
+    if (Array.isArray(data.categories)) {
+      categoriesData.value = data.categories.map(c => ({
+        ...c,
+        articleCount: c.articles_count ?? 0,
+      }))
+    }
+
+    fetched = true
+  } catch (err) {
+    console.error('[useDashboard] fetchDashboard failed', err?.response?.status, err?.response?.data)
+  } finally {
+    loading.value = false
+  }
 }
 
+// Reset guard when navigating away (Inertia SPA)
+if (typeof window !== 'undefined') {
+  document.addEventListener('inertia:navigate', () => { fetched = false })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIONS  (kept for LiveScores.vue + legacy pages)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const deleteArticle      = (id) => { articles.value = articles.value.filter(a => a.id !== id) }
 const toggleArticleStatus = (id) => {
-  const art = articles.value.find(a => a.id === id)
-  if (art) art.status = art.status === 'published' ? 'draft' : 'published'
+  const a = articles.value.find(a => a.id === id)
+  if (a) a.status = a.status === 'published' ? 'draft' : 'published'
 }
-
-const toggleFeatured = (id) => {
+const toggleFeatured     = (id) => {
   articles.value.forEach(a => { a.isFeatured = false })
-  const art = articles.value.find(a => a.id === id)
-  if (art) art.isFeatured = true
+  const a = articles.value.find(a => a.id === id)
+  if (a) a.isFeatured = true
+}
+const addArticle         = (article) => {
+  articles.value.unshift({ ...article, id: Date.now(), views: 0, status: 'draft' })
+}
+const updateArticle      = (id, updates) => {
+  const a = articles.value.find(a => a.id === id)
+  if (a) Object.assign(a, updates)
 }
 
-const addArticle = (article) => {
-  const newId = Math.max(...articles.value.map(a => a.id)) + 1
-  articles.value.unshift({
-    ...article,
-    id: newId,
-    views: 0,
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    status: 'draft',
-    isFeatured: false,
-  })
-  syncCounts()
+const updateLiveScore    = (id, updates) => {
+  const m = liveScores.value.find(m => m.id === id)
+  if (m) Object.assign(m, updates)
 }
-
-const updateArticle = (id, updates) => {
-  const art = articles.value.find(a => a.id === id)
-  if (art) Object.assign(art, updates)
-  syncCounts()
+const addLiveScore       = (match) => {
+  liveScores.value.push({ ...match, id: Date.now() })
 }
-
-const updateLiveScore = (id, updates) => {
-  const match = liveScores.value.find(m => m.id === id)
-  if (match) Object.assign(match, updates)
-}
-
-const addLiveScore = (match) => {
-  const newId = Math.max(...liveScores.value.map(m => m.id), 0) + 1
-  liveScores.value.push({ ...match, id: newId })
-}
-
-const removeLiveScore = (id) => {
+const removeLiveScore    = (id) => {
   liveScores.value = liveScores.value.filter(m => m.id !== id)
 }
 
-const markAllRead = () => {
-  notifications.value.forEach(n => { n.read = true })
+const markAllRead        = () => { notifications.value.forEach(n => { n.read = true }) }
+
+const addCategory        = (cat) => { categoriesData.value.push({ ...cat, articleCount: 0 }) }
+const deleteCategory     = (id)  => { categoriesData.value = categoriesData.value.filter(c => c.id !== id) }
+const updateCategory     = (id, updates) => {
+  const c = categoriesData.value.find(c => c.id === id)
+  if (c) Object.assign(c, updates)
 }
 
-const addCategory = (cat) => {
-  const newId = Math.max(...categoriesData.map(c => c.id)) + 1
-  categoriesData.push({ ...cat, id: newId, articleCount: 0 })
-}
+const toggleSidebar      = () => { sidebarCollapsed.value = !sidebarCollapsed.value }
 
-const deleteCategory = (id) => {
-  const idx = categoriesData.findIndex(c => c.id === id)
-  if (idx !== -1) categoriesData.splice(idx, 1)
-}
-
-const updateCategory = (id, updates) => {
-  const cat = categoriesData.find(c => c.id === id)
-  if (cat) Object.assign(cat, updates)
-}
-
-// ─── Sidebar Collapsed State ───────────────────────────────────────────────
-const sidebarCollapsed = ref(false)
-const toggleSidebar = () => { sidebarCollapsed.value = !sidebarCollapsed.value }
-
+// ─────────────────────────────────────────────────────────────────────────────
 export function useDashboard() {
   return {
     // state
+    loading,
     articles,
-    liveScores,
-    categoriesData,
-    notifications,
-    chartData,
     stats,
+    chartData,
+    categoriesData,
+    liveScores,
+    notifications,
     unreadCount,
     sidebarCollapsed,
+    // api
+    fetchDashboard,
     // actions
     deleteArticle,
     toggleArticleStatus,

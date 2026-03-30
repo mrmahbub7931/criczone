@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UploadController;
@@ -12,6 +13,9 @@ use Illuminate\Support\Facades\Route;
 // so session-based auth works out of the box.
 
 Route::middleware('auth')->group(function () {
+
+    // ── Dashboard overview (admin + editor) ───────────────────────────────
+    Route::middleware('role:admin,editor')->get('dashboard', [DashboardController::class, 'index']);
 
     // ── Image upload (admin + editor) ─────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {

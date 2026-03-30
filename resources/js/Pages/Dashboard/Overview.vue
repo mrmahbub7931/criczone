@@ -35,20 +35,25 @@
       <!-- Bar Chart -->
       <div class="lg:col-span-7 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between mb-5">
-          <h2 class="font-bold text-gray-800 text-sm">Views — Last 7 Days</h2>
+          <h2 class="font-bold text-gray-800 text-sm">Articles Published — Last 7 Days</h2>
           <span class="text-xs font-medium text-[#0D47A1] bg-blue-50 px-2.5 py-1 rounded-full">
-            {{ totalWeekViews.toLocaleString() }} total
+            {{ totalWeekArticles }} published
           </span>
         </div>
-        <div class="flex items-end gap-2 h-36">
+        <!-- Skeleton -->
+        <div v-if="loading" class="flex items-end gap-2 h-36">
+          <div v-for="i in 7" :key="i" class="flex-1 bg-gray-100 rounded-t-md animate-pulse" :style="{ height: (30 + i * 8) + '%' }" />
+        </div>
+        <!-- Real chart -->
+        <div v-else class="flex items-end gap-2 h-36">
           <div v-for="d in chartData" :key="d.day" class="flex-1 flex flex-col items-center gap-1 group">
             <span class="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              {{ (d.views / 1000).toFixed(1) }}k
+              {{ d.articles }}
             </span>
             <div class="w-full relative bg-blue-50 rounded-t-md group-hover:bg-blue-100 transition-colors" style="height:100%">
               <div
-                class="absolute bottom-0 left-0 right-0 bg-[#0D47A1] rounded-t-md transition-all duration-500"
-                :style="{ height: barHeight(d.views) }"
+                class="absolute bottom-0 left-0 right-0 bg-[#0D47A1] rounded-t-md transition-all duration-700"
+                :style="{ height: barHeight(d.articles) }"
               />
             </div>
             <span class="text-[11px] text-gray-500">{{ d.day }}</span>
@@ -59,7 +64,10 @@
       <!-- Quick Stats -->
       <div class="lg:col-span-5 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <h2 class="font-bold text-gray-800 text-sm mb-4">Quick Stats</h2>
-        <div class="space-y-2.5">
+        <div v-if="loading" class="space-y-2.5">
+          <div v-for="i in 5" :key="i" class="h-8 bg-gray-100 rounded animate-pulse" />
+        </div>
+        <div v-else class="space-y-2.5">
           <div class="flex justify-between py-1.5 border-b border-gray-50 text-sm">
             <span class="text-gray-500">Published</span>
             <span class="font-bold text-green-600">{{ stats.publishedCount }}</span>
@@ -69,8 +77,8 @@
             <span class="font-bold text-yellow-600">{{ stats.draftCount }}</span>
           </div>
           <div class="flex justify-between py-1.5 border-b border-gray-50 text-sm">
-            <span class="text-gray-500">Live Matches</span>
-            <span class="font-bold text-[#EF5350]">{{ stats.liveMatches }}</span>
+            <span class="text-gray-500">Featured</span>
+            <span class="font-bold text-[#0D47A1]">{{ stats.featuredCount }}</span>
           </div>
           <div class="flex justify-between py-1.5 border-b border-gray-50 text-sm">
             <span class="text-gray-500">Categories</span>
@@ -78,7 +86,9 @@
           </div>
           <div class="flex justify-between py-1.5 text-sm">
             <span class="text-gray-500">Total Views</span>
-            <span class="font-black text-gray-900">{{ (stats.totalViews / 1000).toFixed(0) }}K</span>
+            <span class="font-black text-gray-900">
+              {{ stats.totalViews >= 1000 ? (stats.totalViews / 1000).toFixed(1) + 'K' : stats.totalViews }}
+            </span>
           </div>
         </div>
       </div>
@@ -92,7 +102,18 @@
           View all →
         </Link>
       </div>
-      <div class="divide-y divide-gray-50">
+      <!-- Skeleton -->
+      <div v-if="loading" class="divide-y divide-gray-50">
+        <div v-for="i in 4" :key="i" class="flex items-center gap-4 px-5 py-3">
+          <div class="flex-1 space-y-1.5">
+            <div class="h-3.5 bg-gray-100 rounded animate-pulse w-3/4" />
+            <div class="h-3 bg-gray-100 rounded animate-pulse w-1/3" />
+          </div>
+          <div class="h-5 w-16 bg-gray-100 rounded-full animate-pulse" />
+        </div>
+      </div>
+      <!-- Real rows -->
+      <div v-else-if="recentArticles.length" class="divide-y divide-gray-50">
         <div
           v-for="art in recentArticles"
           :key="art.id"
@@ -105,9 +126,12 @@
           <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0', statusClass(art.status)]">
             {{ art.status }}
           </span>
-          <span class="text-xs text-gray-400 hidden sm:block shrink-0">{{ (art.views / 1000).toFixed(1) }}k</span>
+          <span class="text-xs text-gray-400 hidden sm:block shrink-0">
+            {{ art.views >= 1000 ? (art.views / 1000).toFixed(1) + 'k' : art.views }}
+          </span>
         </div>
       </div>
+      <p v-else class="px-5 py-8 text-sm text-gray-400 text-center">No articles yet. Start writing!</p>
     </div>
 
     <!-- Viewer-only message -->
@@ -120,13 +144,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
-import { Newspaper, Eye, Radio, Tag, ShieldCheck, UserCheck } from 'lucide-vue-next'
+import { Newspaper, Eye, Radio, Tag, Users, ShieldCheck, UserCheck } from 'lucide-vue-next'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
 import { useDashboard } from '@/composables/useDashboard.js'
 
-const { articles, stats, chartData } = useDashboard()
+const { fetchDashboard, articles, stats, chartData, loading } = useDashboard()
+
+onMounted(() => {
+  fetchDashboard()
+})
 
 const page = usePage()
 const auth = computed(() => page.props.auth ?? {})
@@ -175,22 +203,54 @@ const banner = computed(() => {
   return roleBanners.viewer
 })
 
-const maxViews = computed(() => Math.max(...chartData.value.map(d => d.views)))
-const totalWeekViews = computed(() => chartData.value.reduce((s, d) => s + d.views, 0))
-const barHeight = (views) => `${Math.round((views / maxViews.value) * 100)}%`
+const maxDayArticles    = computed(() => Math.max(...chartData.value.map(d => d.articles), 1))
+const totalWeekArticles = computed(() => chartData.value.reduce((s, d) => s + d.articles, 0))
+const barHeight         = (count) => `${Math.max(4, Math.round((count / maxDayArticles.value) * 100))}%`
 
 const recentArticles = computed(() => articles.value.slice(0, 6))
 
 const statCards = computed(() => {
   const base = [
-    { label: 'Total Articles', value: stats.value.totalArticles, icon: Newspaper, bg: 'bg-blue-50',   color: 'text-[#0D47A1]',   sub: `${stats.value.publishedCount} published` },
-    { label: 'Total Views',    value: (stats.value.totalViews / 1000).toFixed(0) + 'K', icon: Eye, bg: 'bg-green-50', color: 'text-green-600', sub: 'all time' },
+    {
+      label: 'Total Articles',
+      value: loading.value ? '…' : stats.value.totalArticles,
+      icon: Newspaper,
+      bg: 'bg-blue-50',
+      color: 'text-[#0D47A1]',
+      sub: loading.value ? '' : `${stats.value.publishedCount} published · ${stats.value.draftCount} drafts`,
+    },
+    {
+      label: 'Total Views',
+      value: loading.value ? '…' : (stats.value.totalViews >= 1000
+        ? (stats.value.totalViews / 1000).toFixed(1) + 'K'
+        : stats.value.totalViews),
+      icon: Eye,
+      bg: 'bg-green-50',
+      color: 'text-green-600',
+      sub: 'all time across all articles',
+    },
   ]
   if (isAdminOrEditor.value) {
     base.push(
-      { label: 'Live Matches', value: stats.value.liveMatches, icon: Radio, bg: 'bg-red-50',    color: 'text-[#EF5350]',  sub: 'currently live' },
-      { label: 'Categories',   value: stats.value.categories,  icon: Tag,   bg: 'bg-purple-50', color: 'text-purple-600', sub: 'active categories' },
+      {
+        label: 'Categories',
+        value: loading.value ? '…' : stats.value.categories,
+        icon: Tag,
+        bg: 'bg-purple-50',
+        color: 'text-purple-600',
+        sub: 'active categories',
+      },
     )
+  }
+  if (isAdmin.value && stats.value.users !== null) {
+    base.push({
+      label: 'Users',
+      value: loading.value ? '…' : stats.value.users,
+      icon: Users,
+      bg: 'bg-orange-50',
+      color: 'text-orange-600',
+      sub: 'registered accounts',
+    })
   }
   return base
 })
