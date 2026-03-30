@@ -17,7 +17,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // Dashboard — requires login + admin or editor role
 Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(function () {
     Route::get('/',            fn () => Inertia::render('Dashboard/Overview'))->name('dashboard');
-    Route::get('/articles',    fn () => Inertia::render('Dashboard/Articles'))->name('dashboard.articles');
+    Route::get('/articles',    fn () => Inertia::render('Dashboard/Articles/Index'))->name('dashboard.articles');
     Route::get('/categories',  fn () => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
     Route::get('/live-scores', fn () => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
     Route::get('/settings',    fn () => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
