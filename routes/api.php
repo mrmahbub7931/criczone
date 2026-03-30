@@ -5,17 +5,10 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| User & Role Management API
-|--------------------------------------------------------------------------
-|
-| All routes are prefixed with /api automatically by Laravel.
-|
-*/
+// All routes here are already under the 'web' middleware group (see bootstrap/app.php)
+// so session-based auth works out of the box.
 
-// All API routes use the web (session) guard since the app uses session-based auth
-Route::middleware('auth:web')->group(function () {
+Route::middleware('auth')->group(function () {
 
     // ── Categories (admin + editor) ────────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {
