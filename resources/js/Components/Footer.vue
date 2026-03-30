@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/vue3'
 import { Mail, Send, MapPin, Phone, ArrowRight } from 'lucide-vue-next'
 import { ref } from 'vue'
 
-const logo = `${window.location.origin}/images/criczone.jpg`
+const logo = `${window.location.origin}/images/criczone.png`
 const email = ref('')
 
 const quickLinks = [
@@ -32,8 +32,8 @@ const categories = [
         <!-- Brand -->
         <div>
           <Link href="/" class="flex items-center gap-2.5 mb-4">
-            <img :src="logo" alt="CricZone" class="h-10 w-auto rounded-full ring-2 ring-white/20" />
-            <span class="text-xl font-bold">Cric<span class="text-secondary">Zone</span></span>
+            <img :src="logo" alt="CricZone" class="h-10 w-auto" />
+            <!-- <span class="text-xl font-bold">Cric<span class="text-secondary">Zone</span></span> -->
           </Link>
           <p class="text-white/50 text-sm leading-relaxed mb-5">
             Your premier destination for cricket news, live scores, match analysis, and everything cricket.

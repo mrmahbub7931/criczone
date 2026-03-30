@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Search, Menu, X, ChevronRight } from 'lucide-vue-next'
-import { LIVE_MATCHES } from '@/data.js'
+import { LIVE_SCORES } from '@/data.js'
 
 const mobileOpen = ref(false)
 const scrolled = ref(false)
