@@ -479,6 +479,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
+import axios from 'axios'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const page      = usePage()
@@ -697,7 +698,11 @@ const saveProfile = async () => {
   }
 }
 
-onMounted(fetchSettings)
+// onMounted(fetchSettings)
+onMounted(() => {
+  // console.log('Settings page mounted')
+  fetchSettings()
+})
 </script>
 
 <style scoped>
