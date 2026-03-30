@@ -21,4 +21,10 @@ Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(fun
     Route::get('/categories',  fn () => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
     Route::get('/live-scores', fn () => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
     Route::get('/settings',    fn () => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
+
+    // Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/users', fn () => Inertia::render('Dashboard/Users/Index'))->name('dashboard.users');
+        Route::get('/roles', fn () => Inertia::render('Dashboard/Roles/Index'))->name('dashboard.roles');
+    });
 });
