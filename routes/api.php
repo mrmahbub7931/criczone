@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +13,11 @@ use Illuminate\Support\Facades\Route;
 | All routes are prefixed with /api automatically by Laravel.
 |
 */
+
+// ── Categories (admin + editor) ────────────────────────────────────────────
+Route::middleware('role:admin,editor')->group(function () {
+    Route::apiResource('categories', CategoryController::class)->except('show');
+});
 
 // ── Roles ──────────────────────────────────────────────────────────────────
 Route::apiResource('roles', RoleController::class);
