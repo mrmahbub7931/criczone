@@ -1,5 +1,5 @@
 import { ref, computed, reactive } from 'vue'
-import { MOCK_NEWS, LIVE_MATCHES } from '@/data.js'
+import { MOCK_NEWS, LIVE_SCORES } from '@/data.js'
 
 // ─── Reactive Articles Store ───────────────────────────────────────────────
 const articles = ref(
@@ -10,9 +10,9 @@ const articles = ref(
   }))
 )
 
-// ─── Reactive Live Matches Store ───────────────────────────────────────────
+// ─── Reactive Live Scores Store ────────────────────────────────────────────
 const liveScores = ref(
-  LIVE_MATCHES.map(m => ({ ...m }))
+  LIVE_SCORES.map(m => ({ ...m }))
 )
 
 // ─── Reactive Categories Store ─────────────────────────────────────────────
@@ -37,8 +37,8 @@ syncCounts()
 const notifications = ref([
   { id: 1, message: 'New comment on "India Clinches Historic Series Win"', time: '2m ago', read: false, type: 'comment' },
   { id: 2, message: 'Article "IPL Auction" is trending with 45K views',    time: '15m ago', read: false, type: 'trending' },
-  { id: 3, message: 'Live score update pushed for IND vs AUS',              time: '1h ago', read: true, type: 'score' },
-  { id: 4, message: 'Draft "T20 World Cup Analysis" needs review',          time: '2h ago', read: true, type: 'draft' },
+  { id: 3, message: 'Live score update pushed for IND vs AUS',              time: '1h ago', read: true,  type: 'score' },
+  { id: 4, message: 'Draft "T20 World Cup Analysis" needs review',          time: '2h ago', read: true,  type: 'draft' },
 ])
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
@@ -128,6 +128,11 @@ const deleteCategory = (id) => {
   if (idx !== -1) categoriesData.splice(idx, 1)
 }
 
+const updateCategory = (id, updates) => {
+  const cat = categoriesData.find(c => c.id === id)
+  if (cat) Object.assign(cat, updates)
+}
+
 // ─── Sidebar Collapsed State ───────────────────────────────────────────────
 const sidebarCollapsed = ref(false)
 const toggleSidebar = () => { sidebarCollapsed.value = !sidebarCollapsed.value }
@@ -154,6 +159,7 @@ export function useDashboard() {
     removeLiveScore,
     markAllRead,
     addCategory,
+    updateCategory,
     deleteCategory,
     toggleSidebar,
   }

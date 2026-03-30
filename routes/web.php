@@ -14,3 +14,12 @@ Route::get('/category/{slug}', function (string $slug) {
         'category' => $slug,
     ]);
 })->name('category');
+
+// Dashboard (SPA — all routes render the matching Vue page)
+Route::prefix('dashboard')->group(function () {
+    Route::get('/',            fn() => Inertia::render('Dashboard/Overview'))->name('dashboard');
+    Route::get('/articles',    fn() => Inertia::render('Dashboard/Articles'))->name('dashboard.articles');
+    Route::get('/categories',  fn() => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
+    Route::get('/live-scores', fn() => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
+    Route::get('/settings',    fn() => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
+});
