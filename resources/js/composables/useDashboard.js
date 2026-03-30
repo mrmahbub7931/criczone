@@ -12,7 +12,7 @@ const articles = ref(
 
 // ─── Reactive Live Scores Store ────────────────────────────────────────────
 const liveScores = ref(
-  LIVE_SCORES.map(m => ({ ...m }))
+  LIVE_MATCHES.map(m => ({ overs: '0.0', ...m }))
 )
 
 // ─── Reactive Categories Store ─────────────────────────────────────────────

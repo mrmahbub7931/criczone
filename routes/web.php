@@ -15,7 +15,7 @@ Route::get('/category/{slug}', function (string $slug) {
     ]);
 })->name('category');
 
-// Dashboard (SPA — all routes render the matching Vue page)
+// Dashboard (SPA)
 Route::prefix('dashboard')->group(function () {
     Route::get('/',            fn() => Inertia::render('Dashboard/Overview'))->name('dashboard');
     Route::get('/articles',    fn() => Inertia::render('Dashboard/Articles'))->name('dashboard.articles');
