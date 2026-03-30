@@ -68,7 +68,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 
-const logoUrl = `${window.location.origin}/images/criczone.jpg`
+const logoUrl = `${window.location.origin}/images/criczone.png`
 
 const form = useForm({
   email:    '',

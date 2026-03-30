@@ -25,7 +25,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 <template>
   <!-- ── Scores Ticker ── -->
-  <div class="bg-surface-dark text-white/70 text-[11px] font-medium">
+  <!-- <div class="bg-surface-dark text-white/70 text-[11px] font-medium">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-8 flex items-center gap-4 overflow-x-auto scrollbar-hide">
       <span class="text-secondary font-bold uppercase tracking-widest flex items-center gap-1.5 flex-shrink-0">
         <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
@@ -44,7 +44,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
         <span v-if="i < LIVE_MATCHES.length - 1" class="w-px h-3.5 bg-white/10 flex-shrink-0" />
       </template>
     </div>
-  </div>
+  </div> -->
 
   <!-- ── Main Nav ── -->
   <nav
