@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,6 +11,11 @@ use Illuminate\Support\Facades\Route;
 // so session-based auth works out of the box.
 
 Route::middleware('auth')->group(function () {
+
+    // ── Image upload (admin + editor) ─────────────────────────────────────
+    Route::middleware('role:admin,editor')->group(function () {
+        Route::post('upload-image', [UploadController::class, 'image']);
+    });
 
     // ── Articles (admin + editor) ──────────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {

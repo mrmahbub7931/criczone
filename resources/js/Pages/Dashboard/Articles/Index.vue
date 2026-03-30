@@ -18,12 +18,12 @@
         <Search :size="14" class="text-gray-400 shrink-0" />
         <input v-model="search" type="text" placeholder="Search articles…" class="text-sm text-gray-700 placeholder-gray-400 outline-none w-full bg-transparent" />
       </div>
-      <select v-model="filterStatus" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#0D47A1]">
+      <select v-model="filterStatus" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none">
         <option value="">All Status</option>
         <option value="published">Published</option>
         <option value="draft">Draft</option>
       </select>
-      <select v-model="filterCategory" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#0D47A1]">
+      <select v-model="filterCategory" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none">
         <option value="">All Categories</option>
         <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
       </select>
@@ -53,8 +53,13 @@
             <tr v-else-if="articles.length === 0"><td colspan="6" class="text-center py-12 text-gray-400 text-sm">No articles found.</td></tr>
             <tr v-for="a in articles" :key="a.id" class="hover:bg-gray-50 transition-colors group">
               <td class="px-5 py-3.5 max-w-xs">
-                <p class="font-medium text-gray-800 truncate">{{ a.title }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">{{ a.published_at ? new Date(a.published_at).toLocaleDateString() : 'Not published' }}</p>
+                <div class="flex items-center gap-3">
+                  <img v-if="a.featured_image" :src="a.featured_image" class="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-100" />
+                  <div>
+                    <p class="font-medium text-gray-800 truncate">{{ a.title }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ a.published_at ? new Date(a.published_at).toLocaleDateString() : 'Not published' }}</p>
+                  </div>
+                </div>
               </td>
               <td class="px-4 py-3.5 hidden md:table-cell">
                 <span class="text-xs bg-gray-100 text-gray-600 font-medium px-2 py-0.5 rounded-full">{{ a.category?.name ?? '—' }}</span>
@@ -62,9 +67,7 @@
               <td class="px-4 py-3.5 text-gray-500 text-xs hidden lg:table-cell">{{ a.author?.name ?? '—' }}</td>
               <td class="px-4 py-3.5 text-gray-500 text-xs hidden lg:table-cell">{{ a.views?.toLocaleString() }}</td>
               <td class="px-4 py-3.5">
-                <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full', a.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700']">
-                  {{ a.status }}
-                </span>
+                <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full', a.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700']">{{ a.status }}</span>
               </td>
               <td class="px-4 py-3.5">
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
@@ -76,8 +79,6 @@
           </tbody>
         </table>
       </div>
-
-      <!-- Pagination -->
       <div v-if="meta.last_page > 1" class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
         <span class="text-xs text-gray-400">Page {{ meta.current_page }} of {{ meta.last_page }}</span>
         <div class="flex gap-1">
@@ -91,7 +92,7 @@
     <Transition name="modal">
       <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50" @click="closeModal" />
-        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl p-6 max-h-[92vh] overflow-y-auto">
           <h3 class="font-black text-gray-900 text-base mb-5">{{ editId ? 'Edit Article' : 'Create Article' }}</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -99,25 +100,25 @@
             <div class="sm:col-span-2">
               <label class="label">Title *</label>
               <input v-model="form.title" @input="autoSlug" type="text" :class="field(errors.title)" placeholder="Article title" />
-              <err :e="errors.title" />
+              <Err :e="errors.title" />
             </div>
             <!-- Slug -->
             <div class="sm:col-span-2">
               <label class="label">Slug *</label>
               <input v-model="form.slug" type="text" :class="field(errors.slug) + ' font-mono'" placeholder="article-slug" />
-              <err :e="errors.slug" />
+              <Err :e="errors.slug" />
             </div>
             <!-- Excerpt -->
             <div class="sm:col-span-2">
               <label class="label">Excerpt</label>
               <textarea v-model="form.excerpt" rows="2" :class="field(errors.excerpt) + ' resize-none'" placeholder="Short description…" />
-              <err :e="errors.excerpt" />
+              <Err :e="errors.excerpt" />
             </div>
-            <!-- Content -->
+            <!-- Content — TipTap -->
             <div class="sm:col-span-2">
               <label class="label">Content *</label>
-              <textarea v-model="form.content" rows="6" :class="field(errors.content) + ' resize-y'" placeholder="Article content…" />
-              <err :e="errors.content" />
+              <RichEditor v-model="form.content" :has-error="!!errors.content" />
+              <Err :e="errors.content" />
             </div>
             <!-- Category -->
             <div>
@@ -126,7 +127,7 @@
                 <option value="">Select category…</option>
                 <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
-              <err :e="errors.category_id" />
+              <Err :e="errors.category_id" />
             </div>
             <!-- Status -->
             <div>
@@ -135,13 +136,37 @@
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
               </select>
-              <err :e="errors.status" />
+              <Err :e="errors.status" />
             </div>
-            <!-- Featured Image -->
+            <!-- Featured Image upload -->
             <div class="sm:col-span-2">
-              <label class="label">Featured Image URL</label>
-              <input v-model="form.featured_image" type="text" :class="field(errors.featured_image)" placeholder="https://…" />
-              <err :e="errors.featured_image" />
+              <label class="label">Featured Image</label>
+              <div class="flex items-start gap-4">
+                <!-- Preview -->
+                <div class="shrink-0">
+                  <img
+                    v-if="form.featured_image"
+                    :src="form.featured_image"
+                    class="w-24 h-24 rounded-xl object-cover border border-gray-200 bg-gray-50"
+                  />
+                  <div v-else class="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50">
+                    <ImageIcon :size="20" class="text-gray-300" />
+                  </div>
+                </div>
+                <!-- Input -->
+                <div class="flex-1 space-y-2">
+                  <label
+                    class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors w-full"
+                    :class="{ 'opacity-60 cursor-not-allowed': uploading }"
+                  >
+                    <Upload :size="15" class="shrink-0" />
+                    <span>{{ uploading ? 'Uploading…' : 'Choose image' }}</span>
+                    <input type="file" accept="image/*" class="hidden" :disabled="uploading" @change="uploadImage" />
+                  </label>
+                  <p class="text-xs text-gray-400">JPG, PNG, GIF or WebP — max 4 MB</p>
+                  <Err :e="errors.featured_image" />
+                </div>
+              </div>
             </div>
             <!-- Is Featured -->
             <div class="flex items-center gap-2">
@@ -154,7 +179,7 @@
 
           <div class="flex gap-3 mt-6">
             <button @click="closeModal" class="flex-1 border border-gray-200 text-gray-600 text-sm font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-            <button @click="save" :disabled="saving" class="flex-1 bg-[#0D47A1] hover:bg-[#0a2f6e] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
+            <button @click="save" :disabled="saving || uploading" class="flex-1 bg-[#0D47A1] hover:bg-[#0a2f6e] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
               {{ saving ? 'Saving…' : (editId ? 'Save Changes' : 'Create Article') }}
             </button>
           </div>
@@ -182,10 +207,13 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, defineComponent, h } from 'vue'
 import axios from 'axios'
-import { Plus, Search, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, Search, Pencil, Trash2, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
+import RichEditor from '@/Components/RichEditor.vue'
+
+const Err = defineComponent({ props: ['e'], render() { return this.e ? h('p', { class: 'text-xs text-red-500 mt-1' }, this.e) : null } })
 
 // ── State ─────────────────────────────────────────────────────────────────
 const articles       = ref([])
@@ -197,12 +225,13 @@ const search         = ref('')
 const filterStatus   = ref('')
 const filterCategory = ref('')
 
-const modal       = ref(false)
-const editId      = ref(null)
-const saving      = ref(false)
-const errors      = ref({})
+const modal        = ref(false)
+const editId       = ref(null)
+const saving       = ref(false)
+const uploading    = ref(false)
+const errors       = ref({})
 const deleteTarget = ref(null)
-const toast       = ref('')
+const toast        = ref('')
 
 const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', category_id: '', status: 'draft', is_featured: false })
 const form = ref(blankForm())
@@ -236,7 +265,29 @@ const autoSlug = () => {
 
 const showToast = (msg) => { toast.value = msg; setTimeout(() => { toast.value = '' }, 2500) }
 
-const field = (err) => `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${err ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-[#0D47A1]'}`
+const field = (err) =>
+  `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${err ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-[#0D47A1]'}`
+
+// ── Image upload ──────────────────────────────────────────────────────────
+const uploadImage = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  uploading.value = true
+  errors.value.featured_image = null
+  try {
+    const fd = new FormData()
+    fd.append('image', file)
+    const { data } = await axios.post('/api/upload-image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    form.value.featured_image = data.url
+  } catch (err) {
+    errors.value.featured_image = err.response?.data?.message ?? 'Upload failed.'
+  } finally {
+    uploading.value = false
+    e.target.value = ''
+  }
+}
 
 // ── CRUD ──────────────────────────────────────────────────────────────────
 const openCreate = () => { editId.value = null; form.value = blankForm(); errors.value = {}; modal.value = true }
@@ -275,13 +326,6 @@ const doDelete = async () => {
   showToast('Article deleted.')
   fetchArticles()
 }
-</script>
-
-<!-- Inline reusable sub-components -->
-<script>
-import { h, defineComponent } from 'vue'
-const err = defineComponent({ props: ['e'], render() { return this.e ? h('p', { class: 'text-xs text-red-500 mt-1' }, this.e) : null } })
-export default { components: { err } }
 </script>
 
 <style scoped>
