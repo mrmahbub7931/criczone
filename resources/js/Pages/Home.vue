@@ -30,7 +30,7 @@
           <!-- Side stack -->
           <div class="flex flex-col gap-4">
             <div
-              v-for="card in displayedCards.slice(1, 4)"
+              v-for="card in displayedCards.slice(1, 5)"
               :key="card.id"
               class="cursor-pointer"
               @click="handleArticleClick(card)"
