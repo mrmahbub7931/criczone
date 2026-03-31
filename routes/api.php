@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('pages/{slug}',              [PageController::class, 'show']);
 Route::get('menus/{location}/items',    [MenuController::class, 'publicMenu']);
 Route::get('articles/featured',         [ArticleController::class, 'featured']);
+Route::get('articles/latest',           [ArticleController::class, 'latest']);
+Route::get('articles/{slug}',           [ArticleController::class, 'showBySlug']);
+Route::get('categories/public',         [CategoryController::class, 'publicList']);
 
 Route::middleware('auth')->group(function () {
 

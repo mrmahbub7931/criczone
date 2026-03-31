@@ -24,6 +24,36 @@ class ArticleController extends Controller
         return response()->json($articles);
     }
 
+    /** GET /api/articles/latest — public, paginated, optional ?category=IPL */
+    public function latest(Request $request): JsonResponse
+    {
+        $perPage = min((int) ($request->per_page ?? 6), 24);
+
+        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->when($request->category, fn ($q, $cat) =>
+                $q->whereHas('category', fn ($q2) => $q2->where('name', $cat))
+            )
+            ->orderByDesc('published_at')
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id']);
+
+        return response()->json($articles);
+    }
+
+    /** GET /api/articles/{slug} — public, single article by slug */
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $article = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        // Increment views
+        $article->increment('views');
+
+        return response()->json($article);
+    }
+
     /** GET /api/articles/featured — public, no auth */
     public function featured(Request $request): JsonResponse
     {

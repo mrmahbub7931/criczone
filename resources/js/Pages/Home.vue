@@ -118,22 +118,35 @@
           <div class="flex flex-wrap gap-2 mb-8">
             <button
               v-for="cat in categories"
-              :key="cat"
-              @click="selectedCategory = cat"
+              :key="cat.name"
+              @click="onCategoryChange(cat.name)"
               class="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200"
-              :class="selectedCategory === cat
+              :class="selectedCategory === cat.name
                 ? 'bg-primary text-white shadow-md'
                 : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'"
             >
-              {{ cat }}
+              {{ cat.name }}
             </button>
           </div>
 
+          <!-- Skeleton -->
+          <div v-if="latestLoading" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div v-for="i in 6" :key="i" class="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">
+              <div class="h-48 bg-gray-200" />
+              <div class="p-4 space-y-2">
+                <div class="h-4 bg-gray-200 rounded w-3/4" />
+                <div class="h-3 bg-gray-100 rounded w-full" />
+                <div class="h-3 bg-gray-100 rounded w-2/3" />
+              </div>
+            </div>
+          </div>
+
           <!-- News Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div
               v-for="news in latestNews"
               :key="news.id"
+              class="cursor-pointer"
               @click="handleArticleClick(news)"
             >
               <NewsCard :news="news" />
@@ -141,8 +154,23 @@
           </div>
 
           <!-- Empty state -->
-          <div v-if="latestNews.length === 0" class="text-center py-16 bg-white rounded-xl">
+          <div v-if="!latestLoading && latestNews.length === 0" class="text-center py-16 bg-white rounded-xl">
             <p class="text-gray-400 text-sm">No articles found in this category.</p>
+          </div>
+
+          <!-- Load More -->
+          <div v-if="!latestLoading && hasMorePages" class="flex justify-center mt-8">
+            <button
+              @click="loadMore"
+              :disabled="loadingMore"
+              class="inline-flex items-center gap-2 px-8 py-3 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-full transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-60"
+            >
+              <svg v-if="loadingMore" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+              {{ loadingMore ? 'Loading…' : 'Load More' }}
+            </button>
           </div>
         </div>
 
@@ -162,25 +190,75 @@ import MainLayout from '@/Layouts/MainLayout.vue'
 import Hero from '@/Components/Hero.vue'
 import NewsCard from '@/Components/NewsCard.vue'
 import Sidebar from '@/Components/Sidebar.vue'
-import { MOCK_NEWS } from '@/data.js'
 import { useSettings } from '@/composables/useSettings.js'
 
-const selectedCategory = ref('All')
-
-const categories = [
-  'All', 'International', 'IPL', 'Domestic', 'Test Cricket', 'T20', 'Analysis'
-]
-
-// ── Latest News (unchanged) ─────────────────────────────────────────────────
-const filteredNews = computed(() => {
-  if (selectedCategory.value === 'All') return MOCK_NEWS
-  return MOCK_NEWS.filter(n => n.category === selectedCategory.value)
-})
-const latestNews = computed(() => filteredNews.value)
-
 const handleArticleClick = (article) => {
-  if (article?.slug) window.location.href = `/article/${article.slug}`
+  if (article?.slug && article.slug !== '#') window.location.href = `/article/${article.slug}`
 }
+
+// ── Latest News (dynamic) ────────────────────────────────────────────────────
+const PER_PAGE = 6
+
+const latestNews      = ref([])
+const latestLoading   = ref(true)
+const loadingMore     = ref(false)
+const currentPage     = ref(1)
+const hasMorePages    = ref(false)
+const selectedCategory = ref('All')
+const categories      = ref([{ id: null, name: 'All' }])
+
+const toCardLatest = (a) => ({
+  id:       a.id,
+  slug:     a.slug,
+  title:    a.title,
+  excerpt:  a.excerpt || '',
+  imageUrl: a.featured_image || `https://placehold.co/800x450/0D47A1/white?text=${encodeURIComponent(a.title?.slice(0, 20) || 'CricZone')}`,
+  category: a.category?.name  || 'Cricket',
+  author:   a.author?.name    || 'Staff Writer',
+  readTime: a.excerpt ? `${Math.max(1, Math.ceil(a.excerpt.split(' ').length / 200))} min read` : '3 min read',
+})
+
+const fetchLatest = async (page = 1, append = false) => {
+  if (page === 1) latestLoading.value = true
+  else            loadingMore.value   = true
+
+  try {
+    const params = { page, per_page: PER_PAGE }
+    if (selectedCategory.value !== 'All') params.category = selectedCategory.value
+
+    const { data } = await axios.get('/api/articles/latest', { params })
+    const mapped = (data.data ?? []).map(toCardLatest)
+
+    latestNews.value  = append ? [...latestNews.value, ...mapped] : mapped
+    currentPage.value = data.current_page
+    hasMorePages.value = data.current_page < data.last_page
+  } catch {
+    if (!append) latestNews.value = []
+  } finally {
+    latestLoading.value = false
+    loadingMore.value   = false
+  }
+}
+
+const onCategoryChange = (cat) => {
+  selectedCategory.value = cat
+  currentPage.value = 1
+  fetchLatest(1, false)
+}
+
+const loadMore = () => {
+  fetchLatest(currentPage.value + 1, true)
+}
+
+onMounted(async () => {
+  // Load categories for filter tabs
+  try {
+    const { data } = await axios.get('/api/categories/public')
+    categories.value = [{ id: null, name: 'All' }, ...data]
+  } catch { /* keep default */ }
+
+  fetchLatest(1)
+})
 
 // ── Featured Story (dynamic) ────────────────────────────────────────────────
 const { get: setting, loaded: settingsLoaded } = useSettings()

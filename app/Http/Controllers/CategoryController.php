@@ -19,6 +19,17 @@ class CategoryController extends Controller
         return response()->json($categories);
     }
 
+    /** GET /api/categories/public — public, no auth */
+    public function publicList(): JsonResponse
+    {
+        $categories = Category::withCount(['articles' => fn ($q) => $q->where('status', 'published')])
+            ->having('articles_count', '>', 0)
+            ->orderByDesc('articles_count')
+            ->get(['id', 'name', 'slug', 'color']);
+
+        return response()->json($categories);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([

@@ -8,6 +8,7 @@ use Inertia\Inertia;
 Route::get('/', fn () => Inertia::render('Home'))->name('home');
 Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', ['slug' => $slug]))->name('page.show');
 
+Route::get('/article/{slug}', fn (string $slug) => Inertia::render('Article/Show', ['slug' => $slug]))->name('article.show');
 Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Home', ['category' => $slug]))->name('category');
 
 // Auth
