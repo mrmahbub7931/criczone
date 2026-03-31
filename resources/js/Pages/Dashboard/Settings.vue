@@ -619,6 +619,119 @@
           </div>
         </div>
 
+        <!-- ══ POLLS ════════════════════════════════════════════════════════════ -->
+        <div v-show="activeTab === 'polls'" class="space-y-6">
+
+          <!-- Poll widget enable toggle -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-1">
+              <div>
+                <h2 class="font-bold text-gray-900">Poll Widget</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Show the poll widget in the sidebar</p>
+              </div>
+              <button type="button" @click="toggleField('poll','poll_enabled')"
+                :class="['relative inline-flex w-12 h-6 rounded-full transition-colors duration-200',
+                         isTruthy(form.poll.poll_enabled) ? 'bg-[#0D47A1]' : 'bg-gray-200']">
+                <span :class="['absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                               isTruthy(form.poll.poll_enabled) ? 'translate-x-6' : 'translate-x-0']" />
+              </button>
+            </div>
+            <div class="flex justify-end mt-4">
+              <button @click="save('poll')" :disabled="saving" class="save-btn">
+                <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                {{ saving ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Poll form -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-4">{{ pollEdit ? 'Edit Poll' : 'Create New Poll' }}</h2>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Question</label>
+                <input v-model="pollForm.question" type="text" placeholder="Who will win IPL 2026?"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-2">Options (2–6)</label>
+                <div class="space-y-2">
+                  <div v-for="(_, i) in pollForm.options" :key="i" class="flex items-center gap-2">
+                    <input v-model="pollForm.options[i]" type="text" :placeholder="`Option ${i + 1}`"
+                      class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                    <button v-if="pollForm.options.length > 2" @click="removeOption(i)"
+                      class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <button v-if="pollForm.options.length < 6" @click="addOption"
+                  class="mt-2 text-xs font-semibold text-[#0D47A1] hover:underline">+ Add option</button>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">End Date (optional)</label>
+                  <input v-model="pollForm.ends_at" type="datetime-local"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                </div>
+                <div class="flex items-end pb-2">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" v-model="pollForm.is_active" class="accent-[#0D47A1] w-4 h-4" />
+                    <span class="text-sm font-medium text-gray-700">Set as Active Poll</span>
+                  </label>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 pt-1">
+                <button @click="savePoll" :disabled="pollSaving || !pollForm.question"
+                  class="save-btn">
+                  <svg v-if="pollSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  {{ pollSaving ? 'Saving…' : (pollEdit ? 'Update Poll' : 'Create Poll') }}
+                </button>
+                <button v-if="pollEdit" @click="resetPollForm"
+                  class="px-4 py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Polls list -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-4">All Polls</h2>
+            <div v-if="pollsLoading" class="space-y-2">
+              <div v-for="i in 2" :key="i" class="h-16 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+            <div v-else-if="polls.length" class="space-y-3">
+              <div v-for="p in polls" :key="p.id"
+                class="flex items-start justify-between gap-3 p-4 rounded-xl border"
+                :class="p.is_active ? 'border-[#0D47A1]/30 bg-blue-50' : 'border-gray-100'">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span v-if="p.is_active" class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#0D47A1] text-white">Active</span>
+                    <p class="text-sm font-semibold text-gray-800 truncate">{{ p.question }}</p>
+                  </div>
+                  <p class="text-xs text-gray-400">{{ p.options?.join(' · ') }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ p.votes_count ?? 0 }} votes</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button @click="togglePollActive(p)"
+                    :class="['text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors border',
+                             p.is_active ? 'border-orange-200 text-orange-600 hover:bg-orange-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50']">
+                    {{ p.is_active ? 'Deactivate' : 'Activate' }}
+                  </button>
+                  <button @click="editPoll(p)" class="p-1.5 text-gray-400 hover:text-[#0D47A1] transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button @click="deletePoll(p)" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-sm text-gray-400 text-center py-4">No polls yet. Create one above.</p>
+          </div>
+        </div>
+
         <!-- ══ PROFILE ══════════════════════════════════════════════════════════ -->
         <div v-show="activeTab === 'profile'" class="space-y-6">
 
@@ -718,15 +831,18 @@ const tabs = [
   { key: 'footer',     label: 'Footer',        icon: '📄'  },
   { key: 'smtp',       label: 'Email & SMTP',  icon: '📧'  },
   { key: 'newsletter', label: 'Newsletter',    icon: '✉️'  },
+  { key: 'polls',      label: 'Polls',         icon: '📊'  },
   { key: 'profile',    label: 'My Profile',    icon: '👤'  },
 ]
 const activeTab = ref('general')
 
 // Load subscribers when newsletter tab first opened
-let subsFetched = false
+let subsFetched  = false
+let pollsFetched = false
 const watchTab = (key) => {
   activeTab.value = key
-  if (key === 'newsletter' && !subsFetched) { subsFetched = true; loadSubscribers(1) }
+  if (key === 'newsletter' && !subsFetched)  { subsFetched  = true; loadSubscribers(1) }
+  if (key === 'polls'      && !pollsFetched) { pollsFetched = true; loadPolls() }
 }
 
 // ── Social fields config ──────────────────────────────────────────────────────
@@ -798,6 +914,7 @@ const form = reactive({
     newsletter_enabled: '1', newsletter_subject_prefix: '[CricZone]',
     newsletter_welcome_subject: '', newsletter_welcome_body: '',
   },
+  poll: { poll_enabled: '0' },
 })
 
 const profile = reactive({
@@ -1012,9 +1129,84 @@ const saveProfile = async () => {
   }
 }
 
+// ── Poll management ───────────────────────────────────────────────────────────
+const polls       = ref([])
+const pollsLoading = ref(false)
+const pollForm    = reactive({
+  id: null, question: '', options: ['', ''], is_active: false, ends_at: '',
+})
+const pollSaving  = ref(false)
+const pollEdit    = ref(false)
+
+const loadPolls = async () => {
+  pollsLoading.value = true
+  try { const { data } = await axios.get('/api/admin/polls'); polls.value = data } catch { /* */ }
+  finally { pollsLoading.value = false }
+}
+
+const resetPollForm = () => {
+  pollForm.id = null; pollForm.question = ''; pollForm.options = ['', '']
+  pollForm.is_active = false; pollForm.ends_at = ''
+  pollEdit.value = false
+}
+
+const editPoll = (p) => {
+  pollForm.id        = p.id
+  pollForm.question  = p.question
+  pollForm.options   = [...p.options]
+  pollForm.is_active = p.is_active
+  pollForm.ends_at   = p.ends_at ? p.ends_at.substring(0, 16) : ''
+  pollEdit.value     = true
+}
+
+const addOption    = () => { if (pollForm.options.length < 6) pollForm.options.push('') }
+const removeOption = (i) => { if (pollForm.options.length > 2) pollForm.options.splice(i, 1) }
+
+const savePoll = async () => {
+  if (!pollForm.question || pollForm.options.filter(o => o.trim()).length < 2) return
+  pollSaving.value = true
+  try {
+    const payload = {
+      question: pollForm.question,
+      options:  pollForm.options.filter(o => o.trim()),
+      is_active: pollForm.is_active,
+      ends_at:   pollForm.ends_at || null,
+    }
+    if (pollForm.id) {
+      const { data } = await axios.put(`/api/admin/polls/${pollForm.id}`, payload)
+      const idx = polls.value.findIndex(p => p.id === pollForm.id)
+      if (idx !== -1) polls.value[idx] = data
+    } else {
+      const { data } = await axios.post('/api/admin/polls', payload)
+      polls.value.unshift(data)
+    }
+    resetPollForm()
+    showToast('Poll saved.')
+  } catch (err) {
+    showToast(err.response?.data?.message ?? 'Failed to save poll.', true)
+  } finally {
+    pollSaving.value = false
+  }
+}
+
+const deletePoll = async (p) => {
+  if (!confirm(`Delete poll: "${p.question}"?`)) return
+  try {
+    await axios.delete(`/api/admin/polls/${p.id}`)
+    polls.value = polls.value.filter(x => x.id !== p.id)
+  } catch { showToast('Failed to delete poll.', true) }
+}
+
+const togglePollActive = async (p) => {
+  try {
+    const { data } = await axios.put(`/api/admin/polls/${p.id}`, { ...p, is_active: !p.is_active, options: p.options })
+    const idx = polls.value.findIndex(x => x.id === p.id)
+    if (idx !== -1) polls.value[idx] = data
+  } catch { showToast('Failed to update poll.', true) }
+}
+
 // onMounted(fetchSettings)
 onMounted(() => {
-  // console.log('Settings page mounted')
   fetchSettings()
 })
 </script>

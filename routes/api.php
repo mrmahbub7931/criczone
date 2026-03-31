@@ -8,6 +8,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PollController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UploadController;
@@ -20,10 +21,14 @@ use Illuminate\Support\Facades\Route;
 // Public — no auth required
 Route::get('pages/{slug}',              [PageController::class, 'show']);
 Route::get('menus/{location}/items',    [MenuController::class, 'publicMenu']);
-Route::get('articles/featured',         [ArticleController::class, 'featured']);
-Route::get('articles/latest',           [ArticleController::class, 'latest']);
-Route::get('articles/trending',         [ArticleController::class, 'trending']);
-Route::get('articles/{slug}',           [ArticleController::class, 'showBySlug']);
+Route::get('articles/featured',          [ArticleController::class, 'featured']);
+Route::get('articles/latest',            [ArticleController::class, 'latest']);
+Route::get('articles/trending',          [ArticleController::class, 'trending']);
+Route::get('articles/most-read-week',    [ArticleController::class, 'mostReadWeek']);
+Route::get('articles/{slug}/related',    [ArticleController::class, 'related']);
+Route::get('articles/{slug}',            [ArticleController::class, 'showBySlug']);
+Route::get('poll/active',                [PollController::class,   'active']);
+Route::post('poll/{poll}/vote',          [PollController::class,   'vote']);
 Route::get('categories/public',         [CategoryController::class, 'publicList']);
 Route::get('categories/{slug}/articles',[CategoryController::class, 'categoryArticles']);
 Route::get('live-scores',               [LiveScoreController::class, 'publicList']);
@@ -92,6 +97,14 @@ Route::middleware('auth')->group(function () {
         Route::post  ('admin/live-scores',         [LiveScoreController::class, 'store']);
         Route::put   ('admin/live-scores/{score}', [LiveScoreController::class, 'update']);
         Route::delete('admin/live-scores/{score}', [LiveScoreController::class, 'destroy']);
+    });
+
+    // ── Polls (admin) ────────────────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get   ('admin/polls',          [PollController::class, 'index']);
+        Route::post  ('admin/polls',          [PollController::class, 'store']);
+        Route::put   ('admin/polls/{poll}',   [PollController::class, 'update']);
+        Route::delete('admin/polls/{poll}',   [PollController::class, 'destroy']);
     });
 
     // ── Menus (admin only) ────────────────────────────────────────────────

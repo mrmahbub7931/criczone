@@ -2,8 +2,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Search, Menu, X, ChevronRight } from 'lucide-vue-next'
-import { useMenu } from '@/composables/useMenu.js'
-import { useSettings } from '@/composables/useSettings.js'
+import { useMenu }            from '@/composables/useMenu.js'
+import { useSettings }        from '@/composables/useSettings.js'
+import NotificationBell       from '@/Components/NotificationBell.vue'
 
 const mobileOpen = ref(false)
 const scrolled   = ref(false)
@@ -89,7 +90,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
       </div>
 
       <!-- Right Actions -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1">
+        <NotificationBell />
+
         <a href="/search" class="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all" aria-label="Search">
           <Search class="w-[18px] h-[18px]" />
         </a>

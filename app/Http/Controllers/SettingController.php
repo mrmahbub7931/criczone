@@ -25,6 +25,7 @@ class SettingController extends Controller
                           'smtp_encryption', 'smtp_from_email', 'smtp_from_name'],
         'newsletter' => ['newsletter_enabled', 'newsletter_subject_prefix',
                           'newsletter_welcome_subject', 'newsletter_welcome_body'],
+        'poll'       => ['poll_enabled'],
     ];
 
     /** GET /api/settings */

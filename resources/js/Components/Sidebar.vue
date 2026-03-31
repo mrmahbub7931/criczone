@@ -1,12 +1,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { TrendingUp, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { TrendingUp, Flame, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useSettings } from '@/composables/useSettings.js'
 import { useMenu }     from '@/composables/useMenu.js'
+import PollWidget      from '@/Components/PollWidget.vue'
 
 const { get: setting } = useSettings()
 const newsletterEnabled = computed(() => setting('newsletter', 'newsletter_enabled', '1') === '1')
+
+// ── Most Read This Week ───────────────────────────────────────────────────────
+const mostRead        = ref([])
+const mostReadLoading = ref(true)
 
 // Quick Links — driven by footer_quick menu; static fallback if empty
 const { items: quickMenuItems } = useMenu('footer_quick')
@@ -25,11 +30,14 @@ const trending        = ref([])
 const trendingLoading = ref(true)
 
 onMounted(async () => {
-  try {
-    const { data } = await axios.get('/api/articles/trending')
-    trending.value = data
-  } catch { /* keep empty */ }
-  finally { trendingLoading.value = false }
+  const [trendRes, mostRes] = await Promise.allSettled([
+    axios.get('/api/articles/trending'),
+    axios.get('/api/articles/most-read-week'),
+  ])
+  if (trendRes.status === 'fulfilled') trending.value  = trendRes.value.data ?? []
+  if (mostRes.status  === 'fulfilled') mostRead.value  = mostRes.value.data  ?? []
+  trendingLoading.value = false
+  mostReadLoading.value = false
 })
 
 const formatViews = (n) => {
@@ -143,6 +151,49 @@ const subscribe = async () => {
         </li>
       </ul>
     </div>
+
+    <!-- ── Most Read This Week ───────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+        <Flame class="w-4 h-4 text-orange-500" />
+        <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider">Most Read</h3>
+        <span class="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">This Week</span>
+      </div>
+      <!-- Skeleton -->
+      <ul v-if="mostReadLoading" class="divide-y divide-gray-50">
+        <li v-for="i in 4" :key="i" class="flex items-center gap-3 px-5 py-3 animate-pulse">
+          <div class="w-6 h-6 bg-gray-100 rounded-md shrink-0" />
+          <div class="flex-1 h-4 bg-gray-100 rounded" />
+        </li>
+      </ul>
+      <ul v-else-if="mostRead.length" class="divide-y divide-gray-50">
+        <li
+          v-for="(item, i) in mostRead"
+          :key="item.id"
+          class="hover:bg-gray-50 transition-colors group"
+        >
+          <a :href="`/article/${item.slug}`" class="flex items-start gap-3 px-5 py-3 w-full">
+            <span
+              class="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-black mt-0.5"
+              :class="i === 0 ? 'bg-orange-100 text-orange-600' : i === 1 ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400'"
+            >{{ i + 1 }}</span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                {{ item.title }}
+              </p>
+              <span class="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                <Eye class="w-3 h-3" />
+                {{ formatViews(item.views) }} views
+              </span>
+            </div>
+          </a>
+        </li>
+      </ul>
+      <p v-else class="px-5 py-4 text-xs text-gray-400">No articles this week yet.</p>
+    </div>
+
+    <!-- ── Poll Widget ────────────────────────────────────────────────────── -->
+    <PollWidget />
 
     <!-- ── Newsletter ─────────────────────────────────────────────────────── -->
     <div v-if="newsletterEnabled" class="bg-gradient-to-br from-primary to-primary-dark rounded-xl p-5 text-white shadow-lg">

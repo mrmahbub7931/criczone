@@ -159,4 +159,44 @@ class ArticleController extends Controller
 
         return response()->json(['message' => 'Article deleted.']);
     }
+
+    /** GET /api/articles/{slug}/related — public */
+    public function related(string $slug): JsonResponse
+    {
+        $article = Article::where('slug', $slug)->where('status', 'published')->first();
+        if (! $article) return response()->json([]);
+
+        $related = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->where('id', '!=', $article->id)
+            ->where('category_id', $article->category_id)
+            ->orderByDesc('published_at')
+            ->limit(3)
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'views', 'category_id', 'author_id']);
+
+        return response()->json($related);
+    }
+
+    /** GET /api/articles/most-read-week — public */
+    public function mostReadWeek(): JsonResponse
+    {
+        $articles = Article::with(['category:id,name,color'])
+            ->where('status', 'published')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->orderByDesc('views')
+            ->limit(5)
+            ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
+
+        // Fallback: if fewer than 3 articles in last 7 days, expand to 30 days
+        if ($articles->count() < 3) {
+            $articles = Article::with(['category:id,name,color'])
+                ->where('status', 'published')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->orderByDesc('views')
+                ->limit(5)
+                ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
+        }
+
+        return response()->json($articles);
+    }
 }
