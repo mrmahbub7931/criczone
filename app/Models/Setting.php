@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Setting extends Model
+{
+    protected $fillable = ['key', 'value', 'group'];
+
+    // ── Static helpers ──────────────────────────────────────────────────────
+
+    /** Get a single setting value. */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        return static::where('key', $key)->value('value') ?? $default;
+    }
+
+    /** Set (upsert) a single setting. */
+    public static function set(string $key, mixed $value, string $group = 'general'): void
+    {
+        static::updateOrCreate(
+            ['key' => $key],
+            ['value' => $value, 'group' => $group]
+        );
+    }
+
+    /** Return all settings as [ group => [ key => value ] ]. */
+    public static function getAllGrouped(): array
+    {
+        $grouped = [];
+
+        foreach (static::all() as $setting) {
+            $grouped[$setting->group][$setting->key] = $setting->value;
+        }
+
+        return $grouped;
+    }
+}

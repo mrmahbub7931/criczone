@@ -18,9 +18,9 @@ export default {
           light: '#FF7043',
           dark: '#E53935',
         },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        accent: '#E53935',
+        'accent-light': '#EF5350',
+        'accent-dark': '#C62828',
       },
     },
   },

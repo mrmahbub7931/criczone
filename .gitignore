@@ -23,4 +23,11 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+<<<<<<< HEAD
 .claude/
+=======
+.claude/
+.claire/
+node_modules/
+vendor/
+>>>>>>> redesign-modern-ui
