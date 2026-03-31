@@ -325,6 +325,30 @@
                   <option value="magazine">Magazine</option>
                 </select>
               </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Latest News per Page</label>
+                <select v-model="form.homepage.latest_per_page" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]">
+                  <option v-for="n in [3,6,9,12,15,18,24]" :key="n" :value="String(n)">{{ n }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Category Articles per Page</label>
+                <select v-model="form.homepage.category_per_page" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]">
+                  <option v-for="n in [3,6,9,12,15,18,24]" :key="n" :value="String(n)">{{ n }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Trending Now Count</label>
+                <select v-model="form.homepage.trending_count" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]">
+                  <option v-for="n in [3,5,7,10]" :key="n" :value="String(n)">{{ n }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Most Read This Week Count</label>
+                <select v-model="form.homepage.most_read_count" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]">
+                  <option v-for="n in [3,5,7,10]" :key="n" :value="String(n)">{{ n }}</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -901,6 +925,8 @@ const form = reactive({
     homepage_hero_title: '', homepage_hero_subtitle: '',
     featured_articles_count: '5', breaking_news_enabled: '1',
     breaking_news_text: '', articles_layout: 'grid',
+    latest_per_page: '6', category_per_page: '9',
+    trending_count: '7', most_read_count: '5',
   },
   footer: {
     footer_description: '', footer_copyright: '',

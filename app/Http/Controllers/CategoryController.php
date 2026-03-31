@@ -24,7 +24,9 @@ class CategoryController extends Controller
     {
         $category = Category::where('slug', $slug)->firstOrFail();
 
-        $perPage  = min((int) ($request->per_page ?? 9), 30);
+        $default = (int) \App\Models\Setting::where('key', 'category_per_page')->value('value') ?: 9;
+        $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
+
         $articles = $category->articles()
             ->with(['author:id,name'])
             ->where('status', 'published')

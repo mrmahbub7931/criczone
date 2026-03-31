@@ -116,16 +116,25 @@ import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { User } from 'lucide-vue-next'
+import { useSettings } from '@/composables/useSettings.js'
 
 const props = defineProps({ slug: { type: String, required: true } })
 
-const category     = ref({})
-const articles     = ref([])
-const loading      = ref(true)
-const loadingMore  = ref(false)
-const notFound     = ref(false)
-const currentPage  = ref(1)
-const lastPage     = ref(1)
+const { get: setting } = useSettings()
+
+// Per-page driven by settings
+const catPerPage = computed(() => {
+  const v = parseInt(setting('homepage', 'category_per_page', '9'))
+  return (v > 0 && v <= 48) ? v : 9
+})
+
+const category      = ref({})
+const articles      = ref([])
+const loading       = ref(true)
+const loadingMore   = ref(false)
+const notFound      = ref(false)
+const currentPage   = ref(1)
+const lastPage      = ref(1)
 const totalArticles = ref(0)
 
 const hasMorePages = computed(() => currentPage.value < lastPage.value)
@@ -140,7 +149,7 @@ const fetchArticles = async (page = 1, append = false) => {
 
   try {
     const { data } = await axios.get(`/api/categories/${props.slug}/articles`, {
-      params: { page, per_page: 9 },
+      params: { page, per_page: catPerPage.value },
     })
     category.value      = data.category
     totalArticles.value = data.articles.total
@@ -152,7 +161,7 @@ const fetchArticles = async (page = 1, append = false) => {
   } catch (err) {
     if (err.response?.status === 404) notFound.value = true
   } finally {
-    loading.value    = false
+    loading.value     = false
     loadingMore.value = false
   }
 }

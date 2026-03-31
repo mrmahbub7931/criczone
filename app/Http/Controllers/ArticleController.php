@@ -25,13 +25,16 @@ class ArticleController extends Controller
     }
 
     /** GET /api/articles/trending — public, top by views */
-    public function trending(): JsonResponse
+    public function trending(Request $request): JsonResponse
     {
+        $default = (int) \App\Models\Setting::where('key', 'trending_count')->value('value') ?: 7;
+        $limit   = max(1, min($request->integer('limit', $default), 20));
+
         $articles = Article::with(['category:id,name,color'])
             ->where('status', 'published')
             ->orderByDesc('views')
             ->orderByDesc('published_at')
-            ->limit(7)
+            ->limit($limit)
             ->get(['id', 'title', 'slug', 'views', 'category_id']);
 
         return response()->json($articles);
@@ -62,7 +65,8 @@ class ArticleController extends Controller
     /** GET /api/articles/latest — public, paginated, optional ?category=IPL */
     public function latest(Request $request): JsonResponse
     {
-        $perPage = min((int) ($request->per_page ?? 6), 24);
+        $default = (int) \App\Models\Setting::where('key', 'latest_per_page')->value('value') ?: 6;
+        $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
 
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
@@ -178,22 +182,25 @@ class ArticleController extends Controller
     }
 
     /** GET /api/articles/most-read-week — public */
-    public function mostReadWeek(): JsonResponse
+    public function mostReadWeek(Request $request): JsonResponse
     {
+        $default = (int) \App\Models\Setting::where('key', 'most_read_count')->value('value') ?: 5;
+        $limit   = max(1, min($request->integer('limit', $default), 20));
+
         $articles = Article::with(['category:id,name,color'])
             ->where('status', 'published')
             ->where('created_at', '>=', now()->subDays(7))
             ->orderByDesc('views')
-            ->limit(5)
+            ->limit($limit)
             ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
 
-        // Fallback: if fewer than 3 articles in last 7 days, expand to 30 days
+        // Fallback: if fewer than 3 results in last 7 days, expand to 30 days
         if ($articles->count() < 3) {
             $articles = Article::with(['category:id,name,color'])
                 ->where('status', 'published')
                 ->where('created_at', '>=', now()->subDays(30))
                 ->orderByDesc('views')
-                ->limit(5)
+                ->limit($limit)
                 ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
         }
 

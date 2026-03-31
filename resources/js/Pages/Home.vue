@@ -197,15 +197,21 @@ const handleArticleClick = (article) => {
 }
 
 // ── Latest News (dynamic) ────────────────────────────────────────────────────
-const PER_PAGE = 6
+const { get: setting, loaded: settingsLoaded } = useSettings()
 
-const latestNews      = ref([])
-const latestLoading   = ref(true)
-const loadingMore     = ref(false)
-const currentPage     = ref(1)
-const hasMorePages    = ref(false)
+// Per-page driven by settings; falls back to 6 until settings load
+const latestPerPage = computed(() => {
+  const v = parseInt(setting('homepage', 'latest_per_page', '6'))
+  return (v > 0 && v <= 48) ? v : 6
+})
+
+const latestNews       = ref([])
+const latestLoading    = ref(true)
+const loadingMore      = ref(false)
+const currentPage      = ref(1)
+const hasMorePages     = ref(false)
 const selectedCategory = ref('All')
-const categories      = ref([{ id: null, name: 'All' }])
+const categories       = ref([{ id: null, name: 'All' }])
 
 const toCardLatest = (a) => ({
   id:       a.id,
@@ -223,14 +229,14 @@ const fetchLatest = async (page = 1, append = false) => {
   else            loadingMore.value   = true
 
   try {
-    const params = { page, per_page: PER_PAGE }
+    const params = { page, per_page: latestPerPage.value }
     if (selectedCategory.value !== 'All') params.category = selectedCategory.value
 
     const { data } = await axios.get('/api/articles/latest', { params })
     const mapped = (data.data ?? []).map(toCardLatest)
 
-    latestNews.value  = append ? [...latestNews.value, ...mapped] : mapped
-    currentPage.value = data.current_page
+    latestNews.value   = append ? [...latestNews.value, ...mapped] : mapped
+    currentPage.value  = data.current_page
     hasMorePages.value = data.current_page < data.last_page
   } catch {
     if (!append) latestNews.value = []
@@ -251,7 +257,6 @@ const loadMore = () => {
 }
 
 onMounted(async () => {
-  // Load categories for filter tabs
   try {
     const { data } = await axios.get('/api/categories/public')
     categories.value = [{ id: null, name: 'All' }, ...data]
@@ -261,7 +266,6 @@ onMounted(async () => {
 })
 
 // ── Featured Story (dynamic) ────────────────────────────────────────────────
-const { get: setting, loaded: settingsLoaded } = useSettings()
 
 const featuredArticles  = ref([])
 const featuredLoading   = ref(true)
