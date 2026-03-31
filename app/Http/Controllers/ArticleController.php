@@ -24,6 +24,22 @@ class ArticleController extends Controller
         return response()->json($articles);
     }
 
+    /** GET /api/articles/featured — public, no auth */
+    public function featured(Request $request): JsonResponse
+    {
+        $limit = (int) \App\Models\Setting::where('key', 'featured_articles_count')->value('value') ?: 5;
+        $limit = max(1, min($limit, 20));
+
+        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->orderByDesc('is_featured')
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id']);
+
+        return response()->json($articles);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([

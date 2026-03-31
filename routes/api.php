@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 // Public — no auth required
 Route::get('pages/{slug}',              [PageController::class, 'show']);
 Route::get('menus/{location}/items',    [MenuController::class, 'publicMenu']);
+Route::get('articles/featured',         [ArticleController::class, 'featured']);
 
 Route::middleware('auth')->group(function () {
 
