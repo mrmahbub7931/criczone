@@ -53,7 +53,7 @@
 import { computed } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
-  LayoutDashboard, Newspaper, Users, ShieldCheck, Tag, Radio, Settings, ChevronLeft,
+  LayoutDashboard, Newspaper, Users, ShieldCheck, Tag, Radio, Settings, ChevronLeft, FileText,
 } from 'lucide-vue-next'
 
 defineProps({
@@ -70,6 +70,7 @@ const roles = computed(() => page.props.auth?.roles ?? [])
 const allItems = [
   { href: '/dashboard',             label: 'Dashboard',   icon: LayoutDashboard, roles: ['admin', 'editor', 'viewer'] },
   { href: '/dashboard/articles',    label: 'Articles',    icon: Newspaper,        roles: ['admin', 'editor'] },
+  { href: '/dashboard/pages',       label: 'Pages',       icon: FileText,         roles: ['admin', 'editor'] },
   { href: '/dashboard/categories',  label: 'Categories',  icon: Tag,              roles: ['admin', 'editor'] },
   { href: '/dashboard/live-scores', label: 'Live Scores', icon: Radio,            roles: ['admin'] },
   { href: '/dashboard/users',       label: 'Users',       icon: Users,            roles: ['admin'] },

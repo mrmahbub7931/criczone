@@ -6,6 +6,7 @@ use Inertia\Inertia;
 
 // Public
 Route::get('/', fn () => Inertia::render('Home'))->name('home');
+Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', ['slug' => $slug]))->name('page.show');
 
 Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Home', ['category' => $slug]))->name('category');
 
@@ -18,6 +19,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(function () {
     Route::get('/',            fn () => Inertia::render('Dashboard/Overview'))->name('dashboard');
     Route::get('/articles',    fn () => Inertia::render('Dashboard/Articles/Index'))->name('dashboard.articles');
+    Route::get('/pages',       fn () => Inertia::render('Dashboard/Pages/Index'))->name('dashboard.pages');
     Route::get('/categories',  fn () => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
     Route::get('/live-scores', fn () => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
     Route::get('/settings',    fn () => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');

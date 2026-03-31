@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UploadController;
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 // All routes here are already under the 'web' middleware group (see bootstrap/app.php)
 // so session-based auth works out of the box.
+
+// Public page fetch (no auth)
+Route::get('pages/{slug}', [PageController::class, 'show']);
 
 Route::middleware('auth')->group(function () {
 
@@ -28,6 +32,14 @@ Route::middleware('auth')->group(function () {
         Route::put ('settings',              [SettingController::class, 'update']);
         Route::post('settings/upload-logo',  [SettingController::class, 'uploadLogo']);
     });
+
+    // ── Pages (admin + editor; destroy admin only) ────────────────────────
+    Route::middleware('role:admin,editor')->group(function () {
+        Route::get   ('pages',        [PageController::class, 'index']);
+        Route::post  ('pages',        [PageController::class, 'store']);
+        Route::put   ('pages/{page}', [PageController::class, 'update']);
+    });
+    Route::middleware('role:admin')->delete('pages/{page}', [PageController::class, 'destroy']);
 
     // ── Articles (admin + editor) ──────────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {
