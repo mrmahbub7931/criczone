@@ -1,10 +1,18 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import { Mail, Send, MapPin, ArrowRight } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { Mail, Send, MapPin, Phone, ArrowRight } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
 import { useMenu } from '@/composables/useMenu.js'
+import { useSettings } from '@/composables/useSettings.js'
 
-const logo  = `${window.location.origin}/images/criczone.png`
+const { get: setting } = useSettings()
+
+const logo        = computed(() => setting('general', 'site_logo', `${window.location.origin}/images/criczone.png`))
+const description = computed(() => setting('footer', 'footer_description', 'Your premier destination for cricket news, live scores, match analysis, and everything cricket.'))
+const footerEmail = computed(() => setting('footer', 'footer_email', 'contact@criczone.com'))
+const footerPhone = computed(() => setting('footer', 'footer_phone', ''))
+const copyright   = computed(() => setting('footer', 'footer_copyright', `© ${new Date().getFullYear()} CricZone. All rights reserved.`))
+
 const email = ref('')
 
 // Dynamic menus
@@ -47,17 +55,15 @@ const fallbackLegal = [
           <Link href="/" class="flex items-center gap-2.5 mb-4">
             <img :src="logo" alt="CricZone" class="h-10 w-auto" />
           </Link>
-          <p class="text-white/50 text-sm leading-relaxed mb-5">
-            Your premier destination for cricket news, live scores, match analysis, and everything cricket.
-          </p>
+          <p class="text-white/50 text-sm leading-relaxed mb-5">{{ description }}</p>
           <div class="space-y-2.5 text-sm text-white/40">
-            <div class="flex items-center gap-2">
+            <div v-if="footerEmail" class="flex items-center gap-2">
               <Mail class="w-4 h-4 text-secondary/60" />
-              <span>contact@criczone.com</span>
+              <span>{{ footerEmail }}</span>
             </div>
-            <div class="flex items-center gap-2">
-              <MapPin class="w-4 h-4 text-secondary/60" />
-              <span>Mumbai, India</span>
+            <div v-if="footerPhone" class="flex items-center gap-2">
+              <Phone class="w-4 h-4 text-secondary/60" />
+              <span>{{ footerPhone }}</span>
             </div>
           </div>
         </div>
@@ -128,9 +134,7 @@ const fallbackLegal = [
     <!-- Bottom Bar -->
     <div class="border-t border-white/10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p class="text-white/30 text-xs">
-          &copy; {{ new Date().getFullYear() }} CricZone. All rights reserved.
-        </p>
+        <p class="text-white/30 text-xs">{{ copyright }}</p>
         <div class="flex items-center gap-6 text-xs text-white/30">
           <a
             v-for="link in (legalLinks.length ? legalLinks : fallbackLegal)"

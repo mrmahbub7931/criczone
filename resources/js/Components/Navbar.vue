@@ -1,13 +1,17 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Search, Menu, X, ChevronRight } from 'lucide-vue-next'
 import { useMenu } from '@/composables/useMenu.js'
+import { useSettings } from '@/composables/useSettings.js'
 
 const mobileOpen = ref(false)
 const scrolled   = ref(false)
 
-const logo = `${window.location.origin}/images/criczone.png`
+const { get: setting } = useSettings()
+const logo = computed(() =>
+  setting('general', 'site_logo', `${window.location.origin}/images/criczone.png`)
+)
 
 // Dynamic menu items from API
 const { items: menuItems, loading: menuLoading } = useMenu('header')
