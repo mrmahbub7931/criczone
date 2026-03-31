@@ -2,20 +2,24 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Search, Menu, X, ChevronRight } from 'lucide-vue-next'
-import { LIVE_SCORES } from '@/data.js'
+import { useMenu } from '@/composables/useMenu.js'
 
 const mobileOpen = ref(false)
-const scrolled = ref(false)
+const scrolled   = ref(false)
 
 const logo = `${window.location.origin}/images/criczone.png`
 
-const links = [
-  { href: '/', label: 'Home' },
-  { href: '/category/news', label: 'News' },
-  { href: '/category/matches', label: 'Matches' },
-  { href: '/category/players', label: 'Players' },
-  { href: '/category/series', label: 'Series' },
-  { href: '/category/rankings', label: 'Rankings' },
+// Dynamic menu items from API
+const { items: menuItems, loading: menuLoading } = useMenu('header')
+
+// Fallback links shown while loading or if menu is empty
+const fallbackLinks = [
+  { url: '/',                 label: 'Home' },
+  { url: '/category/news',    label: 'News' },
+  { url: '/category/matches', label: 'Matches' },
+  { url: '/category/players', label: 'Players' },
+  { url: '/category/series',  label: 'Series' },
+  { url: '/category/rankings',label: 'Rankings' },
 ]
 
 const onScroll = () => { scrolled.value = window.scrollY > 20 }
@@ -24,28 +28,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
-  <!-- ── Scores Ticker ── -->
-  <!-- <div class="bg-dark text-white/70 text-[11px] font-medium">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-8 flex items-center gap-4 overflow-x-auto scrollbar-hide">
-      <span class="text-secondary font-bold uppercase tracking-widest flex items-center gap-1.5 flex-shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-        Live
-      </span>
-      <span class="w-px h-3.5 bg-white/10 flex-shrink-0" />
-      <template v-for="(m, i) in LIVE_MATCHES" :key="m.id">
-        <span class="flex items-center gap-2 flex-shrink-0 hover:text-white cursor-pointer transition-colors">
-          <b class="text-white/90">{{ m.team1 }}</b>
-          <span>{{ m.score1 }}</span>
-          <span class="text-secondary/60 text-[10px]">vs</span>
-          <b class="text-white/90">{{ m.team2 }}</b>
-          <span>{{ m.score2 }}</span>
-          <span class="text-white/30 text-[10px]">{{ m.status }}</span>
-        </span>
-        <span v-if="i < LIVE_MATCHES.length - 1" class="w-px h-3.5 bg-white/10 flex-shrink-0" />
-      </template>
-    </div>
-  </div> -->
-
   <!-- ── Main Nav ── -->
   <nav
     :class="[
@@ -62,14 +44,44 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
       <!-- Desktop Links -->
       <div class="hidden lg:flex items-center gap-1 flex-1 justify-center">
-        <Link
-          v-for="link in links"
-          :key="link.href"
-          :href="link.href"
-          class="px-3 py-1.5 text-[13px] font-semibold text-white/70 hover:text-white uppercase tracking-wide rounded-md hover:bg-white/10 transition-all duration-150"
-        >
-          {{ link.label }}
-        </Link>
+        <!-- Dynamic items -->
+        <template v-if="!menuLoading && menuItems.length">
+          <template v-for="link in menuItems" :key="link.id">
+            <!-- Item with children = dropdown -->
+            <div v-if="link.children && link.children.length" class="relative group">
+              <button class="px-3 py-1.5 text-[13px] font-semibold text-white/70 hover:text-white uppercase tracking-wide rounded-md hover:bg-white/10 transition-all duration-150 flex items-center gap-1">
+                {{ link.label }}
+                <svg class="w-3 h-3 opacity-60 group-hover:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <!-- Dropdown -->
+              <div class="absolute top-full left-0 mt-1 min-w-[160px] bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-10">
+                <a
+                  v-for="child in link.children" :key="child.id"
+                  :href="child.url"
+                  :target="child.target"
+                  class="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:text-[#0D47A1] hover:bg-blue-50 transition-colors"
+                >{{ child.label }}</a>
+              </div>
+            </div>
+            <!-- Simple link -->
+            <a
+              v-else
+              :href="link.url"
+              :target="link.target"
+              class="px-3 py-1.5 text-[13px] font-semibold text-white/70 hover:text-white uppercase tracking-wide rounded-md hover:bg-white/10 transition-all duration-150"
+            >{{ link.label }}</a>
+          </template>
+        </template>
+
+        <!-- Fallback while loading or empty -->
+        <template v-else>
+          <Link
+            v-for="link in fallbackLinks"
+            :key="link.url"
+            :href="link.url"
+            class="px-3 py-1.5 text-[13px] font-semibold text-white/70 hover:text-white uppercase tracking-wide rounded-md hover:bg-white/10 transition-all duration-150"
+          >{{ link.label }}</Link>
+        </template>
       </div>
 
       <!-- Right Actions -->
@@ -107,16 +119,45 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     >
       <div v-show="mobileOpen" class="lg:hidden bg-primary-dark">
         <div class="max-w-7xl mx-auto px-4 py-2 space-y-0.5">
-          <Link
-            v-for="link in links"
-            :key="link.href"
-            :href="link.href"
-            @click="mobileOpen = false"
-            class="flex items-center justify-between px-4 py-3 text-white/70 hover:text-white text-sm font-medium hover:bg-white/5 rounded-lg transition-all"
-          >
-            {{ link.label }}
-            <ChevronRight class="w-4 h-4 text-white/20" />
-          </Link>
+          <!-- Dynamic items -->
+          <template v-if="!menuLoading && menuItems.length">
+            <template v-for="link in menuItems" :key="link.id">
+              <a
+                :href="link.url"
+                :target="link.target"
+                @click="mobileOpen = false"
+                class="flex items-center justify-between px-4 py-3 text-white/70 hover:text-white text-sm font-medium hover:bg-white/5 rounded-lg transition-all"
+              >
+                {{ link.label }}
+                <ChevronRight class="w-4 h-4 text-white/20" />
+              </a>
+              <!-- Children -->
+              <a
+                v-for="child in link.children" :key="child.id"
+                :href="child.url"
+                :target="child.target"
+                @click="mobileOpen = false"
+                class="flex items-center justify-between pl-8 pr-4 py-2.5 text-white/50 hover:text-white text-sm hover:bg-white/5 rounded-lg transition-all"
+              >
+                {{ child.label }}
+                <ChevronRight class="w-3 h-3 text-white/20" />
+              </a>
+            </template>
+          </template>
+          <!-- Fallback -->
+          <template v-else>
+            <Link
+              v-for="link in fallbackLinks"
+              :key="link.url"
+              :href="link.url"
+              @click="mobileOpen = false"
+              class="flex items-center justify-between px-4 py-3 text-white/70 hover:text-white text-sm font-medium hover:bg-white/5 rounded-lg transition-all"
+            >
+              {{ link.label }}
+              <ChevronRight class="w-4 h-4 text-white/20" />
+            </Link>
+          </template>
+
           <a
             href="#"
             class="flex items-center justify-center gap-2 mx-4 mt-3 mb-2 py-2.5 bg-secondary text-white text-sm font-bold rounded-lg"

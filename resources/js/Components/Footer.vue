@@ -1,25 +1,38 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import { Mail, Send, MapPin, Phone, ArrowRight } from 'lucide-vue-next'
+import { Mail, Send, MapPin, ArrowRight } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useMenu } from '@/composables/useMenu.js'
 
-const logo = `${window.location.origin}/images/criczone.png`
+const logo  = `${window.location.origin}/images/criczone.png`
 const email = ref('')
 
-const quickLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Latest News', href: '/category/news' },
-  { label: 'Live Scores', href: '#' },
-  { label: 'Match Schedule', href: '/category/matches' },
-  { label: 'Player Rankings', href: '/category/players' },
+// Dynamic menus
+const { items: quickLinks }   = useMenu('footer_quick')
+const { items: categories }   = useMenu('footer_categories')
+const { items: legalLinks }   = useMenu('footer_legal')
+
+// Static fallbacks (used when menu is empty or loading)
+const fallbackQuickLinks = [
+  { url: '/',                  label: 'Home' },
+  { url: '/category/news',     label: 'Latest News' },
+  { url: '#',                  label: 'Live Scores' },
+  { url: '/category/matches',  label: 'Match Schedule' },
+  { url: '/category/players',  label: 'Player Rankings' },
 ]
 
-const categories = [
-  { label: 'International', href: '#' },
-  { label: 'IPL', href: '#' },
-  { label: 'T20 World Cup', href: '#' },
-  { label: 'Test Cricket', href: '#' },
-  { label: 'Domestic', href: '#' },
+const fallbackCategories = [
+  { url: '#', label: 'International' },
+  { url: '#', label: 'IPL' },
+  { url: '#', label: 'T20 World Cup' },
+  { url: '#', label: 'Test Cricket' },
+  { url: '#', label: 'Domestic' },
+]
+
+const fallbackLegal = [
+  { url: '/pages/privacy-policy',    label: 'Privacy Policy' },
+  { url: '/pages/terms-of-service',  label: 'Terms of Service' },
+  { url: '/pages/cookie-policy',     label: 'Cookie Policy' },
 ]
 </script>
 
@@ -33,7 +46,6 @@ const categories = [
         <div>
           <Link href="/" class="flex items-center gap-2.5 mb-4">
             <img :src="logo" alt="CricZone" class="h-10 w-auto" />
-            <!-- <span class="text-xl font-bold">Cric<span class="text-secondary">Zone</span></span> -->
           </Link>
           <p class="text-white/50 text-sm leading-relaxed mb-5">
             Your premier destination for cricket news, live scores, match analysis, and everything cricket.
@@ -54,8 +66,15 @@ const categories = [
         <div>
           <h3 class="font-bold text-sm uppercase tracking-wider mb-4">Quick Links</h3>
           <ul class="space-y-2.5">
-            <li v-for="link in quickLinks" :key="link.label">
-              <a :href="link.href" class="flex items-center gap-2 text-sm text-white/50 hover:text-secondary transition-colors duration-150 group">
+            <li
+              v-for="link in (quickLinks.length ? quickLinks : fallbackQuickLinks)"
+              :key="link.label ?? link.id"
+            >
+              <a
+                :href="link.url"
+                :target="link.target ?? '_self'"
+                class="flex items-center gap-2 text-sm text-white/50 hover:text-secondary transition-colors duration-150 group"
+              >
                 <ArrowRight class="w-3 h-3 text-secondary/0 group-hover:text-secondary transition-colors duration-150" />
                 {{ link.label }}
               </a>
@@ -67,8 +86,15 @@ const categories = [
         <div>
           <h3 class="font-bold text-sm uppercase tracking-wider mb-4">Categories</h3>
           <ul class="space-y-2.5">
-            <li v-for="cat in categories" :key="cat.label">
-              <a :href="cat.href" class="flex items-center gap-2 text-sm text-white/50 hover:text-secondary transition-colors duration-150 group">
+            <li
+              v-for="cat in (categories.length ? categories : fallbackCategories)"
+              :key="cat.label ?? cat.id"
+            >
+              <a
+                :href="cat.url"
+                :target="cat.target ?? '_self'"
+                class="flex items-center gap-2 text-sm text-white/50 hover:text-secondary transition-colors duration-150 group"
+              >
                 <ArrowRight class="w-3 h-3 text-secondary/0 group-hover:text-secondary transition-colors duration-150" />
                 {{ cat.label }}
               </a>
@@ -103,12 +129,16 @@ const categories = [
     <div class="border-t border-white/10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p class="text-white/30 text-xs">
-          &copy; 2026 CricZone. All rights reserved.
+          &copy; {{ new Date().getFullYear() }} CricZone. All rights reserved.
         </p>
         <div class="flex items-center gap-6 text-xs text-white/30">
-          <a href="#" class="hover:text-white/60 transition-colors duration-150">Privacy Policy</a>
-          <a href="#" class="hover:text-white/60 transition-colors duration-150">Terms of Service</a>
-          <a href="#" class="hover:text-white/60 transition-colors duration-150">Cookie Policy</a>
+          <a
+            v-for="link in (legalLinks.length ? legalLinks : fallbackLegal)"
+            :key="link.label ?? link.id"
+            :href="link.url"
+            :target="link.target ?? '_self'"
+            class="hover:text-white/60 transition-colors duration-150"
+          >{{ link.label }}</a>
         </div>
       </div>
     </div>
