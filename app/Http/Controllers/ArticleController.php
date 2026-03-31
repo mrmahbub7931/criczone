@@ -32,7 +32,7 @@ class ArticleController extends Controller
 
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
-            ->orderByDesc('is_featured')
+            ->where('is_featured', true)
             ->orderByDesc('published_at')
             ->limit($limit)
             ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id']);
