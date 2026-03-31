@@ -1,4 +1,7 @@
 <template>
+  <Head>
+    <title>CricZone - Dashboard</title>
+  </Head>
   <div class="min-h-screen bg-gray-50 flex">
 
     <!-- Sidebar -->
@@ -99,7 +102,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import { Bell, Menu, LogOut } from 'lucide-vue-next'
 import DashboardSidebar from '@/Components/DashboardSidebar.vue'
 import { useDashboard } from '@/composables/useDashboard.js'

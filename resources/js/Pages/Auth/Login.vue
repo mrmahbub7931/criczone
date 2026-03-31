@@ -1,4 +1,7 @@
 <template>
+  <Head>
+    <title>CricZone - Login</title>
+  </Head>
   <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
     <div class="w-full max-w-sm">
 
@@ -66,7 +69,7 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 
 const logoUrl = `${window.location.origin}/images/criczone.png`
 
