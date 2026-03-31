@@ -39,11 +39,11 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
       scrolled ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-primary'
     ]"
   >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-[60px] flex items-center justify-between gap-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-[64px] sm:h-[72px] flex items-center justify-between gap-4">
 
       <!-- Logo -->
       <Link href="/" class="flex-shrink-0 hover:opacity-90 transition-opacity">
-        <img :src="logo" alt="CricZone" class="h-10 w-auto" />
+        <img :src="logo" alt="CricZone" class="h-10 sm:h-[52px] w-auto" />
       </Link>
 
       <!-- Desktop Links -->

@@ -91,7 +91,7 @@ const subscribe = async () => {
         <!-- Brand -->
         <div>
           <Link href="/" class="flex items-center gap-2.5 mb-4">
-            <img :src="logo" alt="CricZone" class="h-10 w-auto" />
+            <img :src="logo" alt="CricZone" class="h-10 sm:h-[52px] w-auto" />
           </Link>
           <p class="text-white/50 text-sm leading-relaxed mb-5">{{ description }}</p>
           <div class="space-y-2.5 text-sm text-white/40">

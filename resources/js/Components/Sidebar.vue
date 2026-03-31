@@ -3,9 +3,22 @@ import { ref, computed, onMounted } from 'vue'
 import { TrendingUp, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useSettings } from '@/composables/useSettings.js'
+import { useMenu }     from '@/composables/useMenu.js'
 
 const { get: setting } = useSettings()
 const newsletterEnabled = computed(() => setting('newsletter', 'newsletter_enabled', '1') === '1')
+
+// Quick Links — driven by footer_quick menu; static fallback if empty
+const { items: quickMenuItems } = useMenu('footer_quick')
+const quickLinksFallback = [
+  { label: 'Live Scores', url: '/live-scores' },
+  { label: 'Search',      url: '/search'      },
+  { label: 'T20',         url: '/category/t20'},
+  { label: 'IPL',         url: '/category/ipl'},
+  { label: 'Test',        url: '/category/test'},
+  { label: 'ODI',         url: '/category/odi' },
+]
+const quickLinks = computed(() => quickMenuItems.value.length ? quickMenuItems.value : quickLinksFallback)
 
 // ── Trending ─────────────────────────────────────────────────────────────────
 const trending        = ref([])
@@ -181,21 +194,15 @@ const subscribe = async () => {
       </div>
     </div>
 
-    <!-- ── Quick Links ────────────────────────────────────────────────────── -->
+    <!-- ── Quick Links (driven by footer_quick menu) ────────────────────── -->
     <div class="bg-white rounded-xl shadow-sm p-5">
       <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider mb-3">Quick Links</h3>
       <div class="grid grid-cols-2 gap-2">
         <a
-          v-for="link in [
-            { label: 'Live Scores', href: '/live-scores' },
-            { label: 'Search',      href: '/search'      },
-            { label: 'T20',         href: '/category/t20'},
-            { label: 'IPL',         href: '/category/ipl'},
-            { label: 'Photos',      href: '#'            },
-            { label: 'Videos',      href: '#'            },
-          ]"
-          :key="link.label"
-          :href="link.href"
+          v-for="link in quickLinks"
+          :key="link.label ?? link.id"
+          :href="link.url ?? link.href"
+          :target="link.target ?? '_self'"
           class="text-xs font-medium text-gray-500 hover:text-primary bg-gray-50 hover:bg-primary/5 rounded-lg px-3 py-2 text-center transition-colors duration-150"
         >{{ link.label }}</a>
       </div>
