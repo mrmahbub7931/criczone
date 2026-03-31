@@ -24,6 +24,41 @@ class ArticleController extends Controller
         return response()->json($articles);
     }
 
+    /** GET /api/articles/trending — public, top by views */
+    public function trending(): JsonResponse
+    {
+        $articles = Article::with(['category:id,name,color'])
+            ->where('status', 'published')
+            ->orderByDesc('views')
+            ->orderByDesc('published_at')
+            ->limit(7)
+            ->get(['id', 'title', 'slug', 'views', 'category_id']);
+
+        return response()->json($articles);
+    }
+
+    /** GET /api/search?q= — public */
+    public function search(Request $request): JsonResponse
+    {
+        $q = trim($request->string('q'));
+
+        if (strlen($q) < 2) {
+            return response()->json(['data' => [], 'query' => $q]);
+        }
+
+        $results = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->where(fn ($query) =>
+                $query->where('title', 'like', "%{$q}%")
+                      ->orWhere('excerpt', 'like', "%{$q}%")
+            )
+            ->orderByDesc('published_at')
+            ->limit(20)
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'author_id']);
+
+        return response()->json(['data' => $results, 'query' => $q]);
+    }
+
     /** GET /api/articles/latest — public, paginated, optional ?category=IPL */
     public function latest(Request $request): JsonResponse
     {

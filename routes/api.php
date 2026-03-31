@@ -3,8 +3,10 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LiveScoreController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MenuItemController;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
@@ -20,8 +22,14 @@ Route::get('pages/{slug}',              [PageController::class, 'show']);
 Route::get('menus/{location}/items',    [MenuController::class, 'publicMenu']);
 Route::get('articles/featured',         [ArticleController::class, 'featured']);
 Route::get('articles/latest',           [ArticleController::class, 'latest']);
+Route::get('articles/trending',         [ArticleController::class, 'trending']);
 Route::get('articles/{slug}',           [ArticleController::class, 'showBySlug']);
 Route::get('categories/public',         [CategoryController::class, 'publicList']);
+Route::get('categories/{slug}/articles',[CategoryController::class, 'categoryArticles']);
+Route::get('live-scores',               [LiveScoreController::class, 'publicList']);
+Route::get('search',                    [ArticleController::class, 'search']);
+Route::post('newsletter/subscribe',     [NewsletterController::class, 'subscribe']);
+Route::get('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe']);
 
 Route::middleware('auth')->group(function () {
 
@@ -67,6 +75,24 @@ Route::middleware('auth')->group(function () {
     Route::post  ('users/{user}/roles',        [UserController::class, 'assignRoles']);
     Route::put   ('users/{user}/roles',        [UserController::class, 'syncRoles']);
     Route::delete('users/{user}/roles/{role}', [UserController::class, 'removeRole']);
+
+    // ── SMTP Test ────────────────────────────────────────────────────────
+    Route::middleware('role:admin')->post('settings/test-smtp', [NewsletterController::class, 'testSmtp']);
+
+    // ── Newsletter (admin) ────────────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get   ('admin/newsletter/subscribers',              [NewsletterController::class, 'index']);
+        Route::delete('admin/newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroy']);
+        Route::post  ('admin/newsletter/send',                     [NewsletterController::class, 'send']);
+    });
+
+    // ── Live Scores (admin) ───────────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get   ('admin/live-scores',         [LiveScoreController::class, 'index']);
+        Route::post  ('admin/live-scores',         [LiveScoreController::class, 'store']);
+        Route::put   ('admin/live-scores/{score}', [LiveScoreController::class, 'update']);
+        Route::delete('admin/live-scores/{score}', [LiveScoreController::class, 'destroy']);
+    });
 
     // ── Menus (admin only) ────────────────────────────────────────────────
     Route::middleware('role:admin')->group(function () {

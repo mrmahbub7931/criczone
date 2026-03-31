@@ -1,5 +1,4 @@
 import { ref, computed, reactive } from 'vue'
-import { LIVE_SCORES } from '@/data.js'
 import axios from 'axios'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -37,12 +36,10 @@ const chartData = ref([
 const categoriesData = ref([])
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STATIC / UI STATE  (no real API — keep as-is)
+// STATIC / UI STATE
 // ─────────────────────────────────────────────────────────────────────────────
 
-const liveScores = ref(
-  LIVE_SCORES.map(m => ({ overs: '0.0', ...m }))
-)
+const liveScores = ref([])
 
 const notifications = ref([
   { id: 1, message: 'New comment on "India Clinches Historic Series Win"', time: '2m ago',  read: false, type: 'comment'  },
@@ -133,15 +130,31 @@ const updateArticle      = (id, updates) => {
   if (a) Object.assign(a, updates)
 }
 
-const updateLiveScore    = (id, updates) => {
-  const m = liveScores.value.find(m => m.id === id)
-  if (m) Object.assign(m, updates)
+const fetchLiveScores = async () => {
+  try {
+    const { data } = await axios.get('/api/admin/live-scores')
+    liveScores.value = data
+  } catch { /* non-critical */ }
 }
-const addLiveScore       = (match) => {
-  liveScores.value.push({ ...match, id: Date.now() })
+
+const updateLiveScore = async (id, updates) => {
+  try {
+    const { data } = await axios.put(`/api/admin/live-scores/${id}`, updates)
+    const m = liveScores.value.find(m => m.id === id)
+    if (m) Object.assign(m, data)
+  } catch (e) { throw e }
 }
-const removeLiveScore    = (id) => {
-  liveScores.value = liveScores.value.filter(m => m.id !== id)
+const addLiveScore = async (match) => {
+  try {
+    const { data } = await axios.post('/api/admin/live-scores', match)
+    liveScores.value.unshift(data)
+  } catch (e) { throw e }
+}
+const removeLiveScore = async (id) => {
+  try {
+    await axios.delete(`/api/admin/live-scores/${id}`)
+    liveScores.value = liveScores.value.filter(m => m.id !== id)
+  } catch (e) { throw e }
 }
 
 const markAllRead        = () => { notifications.value.forEach(n => { n.read = true }) }
@@ -170,6 +183,7 @@ export function useDashboard() {
     sidebarCollapsed,
     // api
     fetchDashboard,
+    fetchLiveScores,
     // actions
     deleteArticle,
     toggleArticleStatus,

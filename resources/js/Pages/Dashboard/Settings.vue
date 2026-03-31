@@ -11,7 +11,7 @@
       <!-- Tab bar -->
       <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 rounded-xl p-1">
         <button v-for="tab in tabs" :key="tab.key" type="button"
-          @click="activeTab = tab.key"
+          @click="watchTab(tab.key)"
           :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
                    activeTab === tab.key ? 'bg-white text-[#0D47A1] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
           <span>{{ tab.icon }}</span> {{ tab.label }}
@@ -397,6 +397,228 @@
           </div>
         </div>
 
+        <!-- ══ SMTP ════════════════════════════════════════════════════════════ -->
+        <div v-show="activeTab === 'smtp'" class="space-y-6">
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-1">SMTP Configuration</h2>
+            <p class="text-xs text-gray-400 mb-5">Configure outgoing email settings for newsletter and notifications.</p>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">SMTP Host *</label>
+                  <input v-model="form.smtp.smtp_host" type="text" placeholder="smtp.gmail.com"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Port *</label>
+                  <input v-model="form.smtp.smtp_port" type="number" placeholder="587"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] font-mono" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Username / Email *</label>
+                  <input v-model="form.smtp.smtp_username" type="text" placeholder="you@gmail.com"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Password / App Password *</label>
+                  <input v-model="form.smtp.smtp_password" type="password" placeholder="••••••••••••"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" autocomplete="new-password" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Encryption</label>
+                  <select v-model="form.smtp.smtp_encryption" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] bg-white">
+                    <option value="tls">TLS (recommended)</option>
+                    <option value="ssl">SSL</option>
+                    <option value="">None</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">From Email *</label>
+                  <input v-model="form.smtp.smtp_from_email" type="email" placeholder="noreply@criczone.com"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">From Name</label>
+                  <input v-model="form.smtp.smtp_from_name" type="text" placeholder="CricZone"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test SMTP -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-1">Test Connection</h2>
+            <p class="text-xs text-gray-400 mb-4">Send a test email using the credentials above (saves settings first).</p>
+            <div class="flex gap-3">
+              <input v-model="smtpTestEmail" type="email" placeholder="test@example.com"
+                class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+              <button @click="testSmtp" :disabled="smtpTesting || !smtpTestEmail"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg transition-colors">
+                <svg v-if="smtpTesting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                {{ smtpTesting ? 'Sending…' : 'Send Test Email' }}
+              </button>
+            </div>
+            <p v-if="smtpTestResult" :class="['text-xs mt-2 font-medium', smtpTestOk ? 'text-emerald-600' : 'text-red-500']">
+              {{ smtpTestResult }}
+            </p>
+          </div>
+
+          <div class="flex justify-end">
+            <button @click="save('smtp')" :disabled="saving" class="save-btn">
+              <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              {{ saving ? 'Saving…' : 'Save SMTP Settings' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ NEWSLETTER ═══════════════════════════════════════════════════════ -->
+        <div v-show="activeTab === 'newsletter'" class="space-y-6">
+
+          <!-- Settings card -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-5">Newsletter Settings</h2>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Enable Newsletter</p>
+                  <p class="text-xs text-gray-400">Show subscribe form on public pages</p>
+                </div>
+                <button @click="toggleField('newsletter','newsletter_enabled')" type="button"
+                  :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+                           isTruthy(form.newsletter.newsletter_enabled) ? 'bg-[#0D47A1]' : 'bg-gray-200']">
+                  <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                                 isTruthy(form.newsletter.newsletter_enabled) ? 'translate-x-6' : 'translate-x-1']" />
+                </button>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Subject Prefix</label>
+                <input v-model="form.newsletter.newsletter_subject_prefix" type="text" placeholder="[CricZone]"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                <p class="text-xs text-gray-400 mt-1">Prepended to all newsletter email subjects.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Welcome Email Subject</label>
+                <input v-model="form.newsletter.newsletter_welcome_subject" type="text" placeholder="Welcome to CricZone!"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Welcome Email Body</label>
+                <textarea v-model="form.newsletter.newsletter_welcome_body" rows="5" placeholder="Thank you for subscribing…"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] resize-none" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Subscribers list -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-bold text-gray-900">Subscribers</h2>
+              <span class="text-xs font-bold bg-[#0D47A1]/10 text-[#0D47A1] px-2.5 py-1 rounded-full">
+                {{ subscribers.total ?? 0 }} total
+              </span>
+            </div>
+
+            <!-- Search + filter row -->
+            <div class="flex gap-2 mb-4">
+              <input v-model="subSearch" type="text" placeholder="Search by email…"
+                class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]"
+                @input="loadSubscribers(1)" />
+              <select v-model="subStatusFilter" @change="loadSubscribers(1)"
+                class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] bg-white">
+                <option value="">All</option>
+                <option value="subscribed">Subscribed</option>
+                <option value="unsubscribed">Unsubscribed</option>
+              </select>
+            </div>
+
+            <!-- Table -->
+            <div v-if="subLoading" class="space-y-2">
+              <div v-for="i in 4" :key="i" class="h-10 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+            <div v-else-if="subscribers.data?.length" class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs font-bold text-gray-400 uppercase text-left border-b border-gray-100">
+                    <th class="pb-2 pr-4">Email</th>
+                    <th class="pb-2 pr-4">Name</th>
+                    <th class="pb-2 pr-4">Status</th>
+                    <th class="pb-2 pr-4">Subscribed</th>
+                    <th class="pb-2"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="sub in subscribers.data" :key="sub.id" class="group">
+                    <td class="py-2.5 pr-4 font-medium text-gray-800 truncate max-w-[180px]">{{ sub.email }}</td>
+                    <td class="py-2.5 pr-4 text-gray-500">{{ sub.name || '—' }}</td>
+                    <td class="py-2.5 pr-4">
+                      <span :class="['text-[10px] font-bold uppercase px-2 py-0.5 rounded-full',
+                        sub.status === 'subscribed' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400']">
+                        {{ sub.status }}
+                      </span>
+                    </td>
+                    <td class="py-2.5 pr-4 text-gray-400 text-xs">{{ sub.confirmed_at ? new Date(sub.confirmed_at).toLocaleDateString() : '—' }}</td>
+                    <td class="py-2.5">
+                      <button @click="deleteSubscriber(sub)" class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <!-- Pagination -->
+              <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Showing {{ subscribers.from }}–{{ subscribers.to }} of {{ subscribers.total }}</p>
+                <div class="flex gap-1">
+                  <button v-for="p in Math.min(subscribers.last_page, 5)" :key="p"
+                    @click="loadSubscribers(p)"
+                    :class="['w-7 h-7 text-xs rounded-lg font-semibold transition-colors',
+                             subscribers.current_page === p ? 'bg-[#0D47A1] text-white' : 'text-gray-500 hover:bg-gray-100']">
+                    {{ p }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-sm text-gray-400 text-center py-6">No subscribers yet.</p>
+          </div>
+
+          <!-- Send newsletter -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-4">Send Newsletter</h2>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Subject</label>
+                <input v-model="sendForm.subject" type="text" placeholder="This week in cricket…"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Body</label>
+                <textarea v-model="sendForm.body" rows="6" placeholder="Write your newsletter content here…"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] resize-none" />
+              </div>
+              <div v-if="sendResult" :class="['text-xs p-3 rounded-lg font-medium', sendOk ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600']">
+                {{ sendResult }}
+              </div>
+              <button @click="sendNewsletter" :disabled="sending || !sendForm.subject || !sendForm.body"
+                class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#0D47A1] hover:bg-[#0a2f6e] disabled:opacity-60 text-white rounded-lg transition-colors">
+                <svg v-if="sending" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                {{ sending ? 'Sending…' : `Send to ${subscribers.total ?? 0} Subscribers` }}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button @click="save('newsletter')" :disabled="saving" class="save-btn">
+              <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              {{ saving ? 'Saving…' : 'Save Settings' }}
+            </button>
+          </div>
+        </div>
+
         <!-- ══ PROFILE ══════════════════════════════════════════════════════════ -->
         <div v-show="activeTab === 'profile'" class="space-y-6">
 
@@ -488,15 +710,24 @@ const authRoles = computed(() => page.props.auth?.roles ?? [])
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const tabs = [
-  { key: 'general',  label: 'General',      icon: '⚙️'  },
-  { key: 'contact',  label: 'Contact',       icon: '📞'  },
-  { key: 'social',   label: 'Social Links',  icon: '🔗'  },
-  { key: 'seo',      label: 'SEO',           icon: '🔍'  },
-  { key: 'homepage', label: 'Homepage',      icon: '🏠'  },
-  { key: 'footer',   label: 'Footer',        icon: '📄'  },
-  { key: 'profile',  label: 'My Profile',    icon: '👤'  },
+  { key: 'general',    label: 'General',      icon: '⚙️'  },
+  { key: 'contact',    label: 'Contact',       icon: '📞'  },
+  { key: 'social',     label: 'Social Links',  icon: '🔗'  },
+  { key: 'seo',        label: 'SEO',           icon: '🔍'  },
+  { key: 'homepage',   label: 'Homepage',      icon: '🏠'  },
+  { key: 'footer',     label: 'Footer',        icon: '📄'  },
+  { key: 'smtp',       label: 'Email & SMTP',  icon: '📧'  },
+  { key: 'newsletter', label: 'Newsletter',    icon: '✉️'  },
+  { key: 'profile',    label: 'My Profile',    icon: '👤'  },
 ]
 const activeTab = ref('general')
+
+// Load subscribers when newsletter tab first opened
+let subsFetched = false
+const watchTab = (key) => {
+  activeTab.value = key
+  if (key === 'newsletter' && !subsFetched) { subsFetched = true; loadSubscribers(1) }
+}
 
 // ── Social fields config ──────────────────────────────────────────────────────
 const socialFields = [
@@ -559,6 +790,14 @@ const form = reactive({
     footer_description: '', footer_copyright: '',
     footer_email: '', footer_phone: '',
   },
+  smtp: {
+    smtp_host: '', smtp_port: '587', smtp_username: '', smtp_password: '',
+    smtp_encryption: 'tls', smtp_from_email: '', smtp_from_name: 'CricZone',
+  },
+  newsletter: {
+    newsletter_enabled: '1', newsletter_subject_prefix: '[CricZone]',
+    newsletter_welcome_subject: '', newsletter_welcome_body: '',
+  },
 })
 
 const profile = reactive({
@@ -575,6 +814,81 @@ const uploadingLogo   = ref(false)
 const uploadingFavicon = ref(false)
 const toast = reactive({ show: false, message: '', error: false })
 let toastTimer = null
+
+// ── SMTP test ─────────────────────────────────────────────────────────────────
+const smtpTestEmail  = ref('')
+const smtpTesting    = ref(false)
+const smtpTestResult = ref('')
+const smtpTestOk     = ref(false)
+
+const testSmtp = async () => {
+  smtpTesting.value    = true
+  smtpTestResult.value = ''
+  try {
+    // Save first so the backend uses latest values
+    await axios.put('/api/settings', { smtp: { ...form.smtp } })
+    const { data } = await axios.post('/api/settings/test-smtp', {
+      test_email: smtpTestEmail.value,
+      ...form.smtp,
+    })
+    smtpTestOk.value     = true
+    smtpTestResult.value = data.message
+  } catch (err) {
+    smtpTestOk.value     = false
+    smtpTestResult.value = err.response?.data?.message ?? 'SMTP test failed.'
+  } finally {
+    smtpTesting.value = false
+  }
+}
+
+// ── Newsletter subscribers ────────────────────────────────────────────────────
+const subscribers     = ref({ data: [], total: 0, current_page: 1, last_page: 1, from: 0, to: 0 })
+const subLoading      = ref(false)
+const subSearch       = ref('')
+const subStatusFilter = ref('')
+
+const loadSubscribers = async (page = 1) => {
+  subLoading.value = true
+  try {
+    const { data } = await axios.get('/api/admin/newsletter/subscribers', {
+      params: { page, per_page: 10, search: subSearch.value, status: subStatusFilter.value },
+    })
+    subscribers.value = data
+  } catch { /* ignore */ }
+  finally { subLoading.value = false }
+}
+
+const deleteSubscriber = async (sub) => {
+  if (!confirm(`Remove ${sub.email}?`)) return
+  try {
+    await axios.delete(`/api/admin/newsletter/subscribers/${sub.id}`)
+    await loadSubscribers(subscribers.value.current_page)
+  } catch { /* ignore */ }
+}
+
+// ── Send newsletter ───────────────────────────────────────────────────────────
+const sendForm   = reactive({ subject: '', body: '' })
+const sending    = ref(false)
+const sendResult = ref('')
+const sendOk     = ref(false)
+
+const sendNewsletter = async () => {
+  sending.value    = true
+  sendResult.value = ''
+  try {
+    const { data } = await axios.post('/api/admin/newsletter/send', { ...sendForm })
+    sendOk.value     = true
+    sendResult.value = data.message
+    sendForm.subject = ''
+    sendForm.body    = ''
+    await loadSubscribers(1)
+  } catch (err) {
+    sendOk.value     = false
+    sendResult.value = err.response?.data?.message ?? 'Failed to send newsletter.'
+  } finally {
+    sending.value = false
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const isTruthy = (v) => v === true || v === '1' || v === 1

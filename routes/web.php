@@ -9,7 +9,10 @@ Route::get('/', fn () => Inertia::render('Home'))->name('home');
 Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', ['slug' => $slug]))->name('page.show');
 
 Route::get('/article/{slug}', fn (string $slug) => Inertia::render('Article/Show', ['slug' => $slug]))->name('article.show');
-Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Home', ['category' => $slug]))->name('category');
+Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Category/Show', ['slug' => $slug]))->name('category');
+Route::get('/live-scores',     fn () => Inertia::render('LiveScores'))->name('live-scores');
+Route::get('/newsletter/unsubscribe/{token}', [\App\Http\Controllers\NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+Route::get('/search',          fn () => Inertia::render('Search'))->name('search');
 
 // Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');

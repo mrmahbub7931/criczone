@@ -11,16 +11,20 @@ class SettingController extends Controller
 {
     // Map of group → allowed keys (whitelist to avoid arbitrary DB writes)
     private const GROUPS = [
-        'general'  => ['site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
-                        'articles_per_page', 'timezone', 'show_ticker', 'maintenance_mode'],
-        'contact'  => ['contact_email', 'contact_phone', 'contact_address', 'contact_city', 'contact_country'],
-        'social'   => ['social_facebook', 'social_twitter', 'social_instagram', 'social_youtube',
-                        'social_linkedin', 'social_whatsapp', 'social_telegram', 'social_tiktok'],
-        'seo'      => ['meta_title', 'meta_description', 'meta_keywords',
-                        'google_analytics_id', 'google_tag_manager_id', 'robots_txt'],
-        'homepage' => ['homepage_hero_title', 'homepage_hero_subtitle', 'featured_articles_count',
-                        'breaking_news_enabled', 'breaking_news_text', 'articles_layout'],
-        'footer'   => ['footer_description', 'footer_copyright', 'footer_email', 'footer_phone'],
+        'general'    => ['site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
+                          'articles_per_page', 'timezone', 'show_ticker', 'maintenance_mode'],
+        'contact'    => ['contact_email', 'contact_phone', 'contact_address', 'contact_city', 'contact_country'],
+        'social'     => ['social_facebook', 'social_twitter', 'social_instagram', 'social_youtube',
+                          'social_linkedin', 'social_whatsapp', 'social_telegram', 'social_tiktok'],
+        'seo'        => ['meta_title', 'meta_description', 'meta_keywords',
+                          'google_analytics_id', 'google_tag_manager_id', 'robots_txt'],
+        'homepage'   => ['homepage_hero_title', 'homepage_hero_subtitle', 'featured_articles_count',
+                          'breaking_news_enabled', 'breaking_news_text', 'articles_layout'],
+        'footer'     => ['footer_description', 'footer_copyright', 'footer_email', 'footer_phone'],
+        'smtp'       => ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
+                          'smtp_encryption', 'smtp_from_email', 'smtp_from_name'],
+        'newsletter' => ['newsletter_enabled', 'newsletter_subject_prefix',
+                          'newsletter_welcome_subject', 'newsletter_welcome_body'],
     ];
 
     /** GET /api/settings */

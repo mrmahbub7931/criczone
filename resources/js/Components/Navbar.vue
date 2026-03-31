@@ -90,11 +90,11 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
       <!-- Right Actions -->
       <div class="flex items-center gap-2">
-        <button class="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all" aria-label="Search">
+        <a href="/search" class="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all" aria-label="Search">
           <Search class="w-[18px] h-[18px]" />
-        </button>
+        </a>
 
-        <a href="#" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white text-[11px] font-bold uppercase tracking-wider rounded-full transition-all shadow-lg shadow-secondary/30">
+        <a href="/live-scores" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white text-[11px] font-bold uppercase tracking-wider rounded-full transition-all shadow-lg shadow-secondary/30">
           <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
           Live Scores
         </a>
@@ -163,7 +163,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           </template>
 
           <a
-            href="#"
+            href="/live-scores"
             class="flex items-center justify-center gap-2 mx-4 mt-3 mb-2 py-2.5 bg-secondary text-white text-sm font-bold rounded-lg"
             @click="mobileOpen = false"
           >

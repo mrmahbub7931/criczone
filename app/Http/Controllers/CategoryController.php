@@ -19,6 +19,24 @@ class CategoryController extends Controller
         return response()->json($categories);
     }
 
+    /** GET /api/categories/{slug}/articles — public */
+    public function categoryArticles(Request $request, string $slug): JsonResponse
+    {
+        $category = Category::where('slug', $slug)->firstOrFail();
+
+        $perPage  = min((int) ($request->per_page ?? 9), 30);
+        $articles = $category->articles()
+            ->with(['author:id,name'])
+            ->where('status', 'published')
+            ->orderByDesc('published_at')
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id']);
+
+        return response()->json([
+            'category' => $category,
+            'articles' => $articles,
+        ]);
+    }
+
     /** GET /api/categories/public — public, no auth */
     public function publicList(): JsonResponse
     {
