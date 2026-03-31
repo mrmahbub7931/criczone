@@ -21,11 +21,11 @@ const visible = computed(() => loaded.value && enabled.value && text.value.lengt
     leave-from-class="opacity-100"
     leave-to-class="opacity-0 -translate-y-full"
   >
-    <div v-if="visible" class="bg-secondary text-white text-xs font-semibold overflow-hidden">
+    <div v-if="visible" class="bg-[#051c3a] text-white text-xs font-semibold overflow-hidden">
       <div class="max-w-7xl mx-auto flex items-center">
 
         <!-- Label badge -->
-        <div class="flex-shrink-0 flex items-center gap-1.5 bg-red-600 px-3 py-2 z-10">
+        <div class="flex-shrink-0 flex items-center gap-1.5 bg-blue-600 px-3 py-2 z-10">
           <Zap class="w-3 h-3 fill-current" />
           <span class="uppercase tracking-widest text-[10px] font-black whitespace-nowrap">Breaking</span>
         </div>
