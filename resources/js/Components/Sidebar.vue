@@ -1,7 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { TrendingUp, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
+import { useSettings } from '@/composables/useSettings.js'
+
+const { get: setting } = useSettings()
+const newsletterEnabled = computed(() => setting('newsletter', 'newsletter_enabled', '1') === '1')
 
 // ── Trending ─────────────────────────────────────────────────────────────────
 const trending        = ref([])
@@ -128,7 +132,7 @@ const subscribe = async () => {
     </div>
 
     <!-- ── Newsletter ─────────────────────────────────────────────────────── -->
-    <div class="bg-gradient-to-br from-primary to-primary-dark rounded-xl p-5 text-white shadow-lg">
+    <div v-if="newsletterEnabled" class="bg-gradient-to-br from-primary to-primary-dark rounded-xl p-5 text-white shadow-lg">
       <div class="flex items-center gap-2 mb-1">
         <Mail class="w-5 h-5 text-secondary-light" />
         <h3 class="font-bold text-sm uppercase tracking-wider">Newsletter</h3>

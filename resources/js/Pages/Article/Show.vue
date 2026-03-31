@@ -1,4 +1,13 @@
 <template>
+  <Head v-if="article">
+    <title>{{ article.title }} – CricZone</title>
+    <meta name="description" :content="article.excerpt || article.title" />
+    <meta property="og:title" :content="article.title" />
+    <meta property="og:description" :content="article.excerpt || article.title" />
+    <meta v-if="article.image" property="og:image" :content="article.image" />
+    <meta property="og:type" content="article" />
+  </Head>
+
   <MainLayout>
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
 
@@ -123,6 +132,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { User, Calendar, Eye, Clock, ChevronLeft } from 'lucide-vue-next'
 

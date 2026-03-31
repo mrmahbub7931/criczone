@@ -1,4 +1,11 @@
 <template>
+  <Head v-if="category.name">
+    <title>{{ category.name }} – CricZone</title>
+    <meta name="description" :content="category.description || `Latest ${category.name} cricket news and articles.`" />
+    <meta property="og:title" :content="`${category.name} – CricZone`" />
+    <meta property="og:description" :content="category.description || `Latest ${category.name} cricket news and articles.`" />
+  </Head>
+
   <MainLayout>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
 
@@ -106,6 +113,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { User } from 'lucide-vue-next'
 
