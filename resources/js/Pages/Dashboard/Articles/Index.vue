@@ -243,7 +243,12 @@ const fetchArticles = async () => {
     params: { page: page.value, search: search.value, status: filterStatus.value, category_id: filterCategory.value, per_page: 12 },
   })
   articles.value = data.data
-  meta.value     = data.meta ?? {}
+  // meta.value     = data.meta ?? {}
+  meta.value = {
+    total: data.total,
+    current_page: data.current_page,
+    last_page: data.last_page
+  }
   loading.value  = false
 }
 

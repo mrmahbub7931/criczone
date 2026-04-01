@@ -50,7 +50,7 @@ const notifications = ref([
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(true)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API FETCH
