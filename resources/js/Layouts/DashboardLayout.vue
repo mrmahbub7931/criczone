@@ -1,6 +1,8 @@
 <template>
   <Head>
     <title>CricZone - Dashboard</title>
+    <!-- Dynamic favicon — updates as soon as settings load -->
+    <link v-if="favicon" rel="icon" :href="favicon" />
   </Head>
   <div class="min-h-screen bg-gray-50 flex">
 
@@ -106,6 +108,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { Bell, Menu, LogOut } from 'lucide-vue-next'
 import DashboardSidebar from '@/Components/DashboardSidebar.vue'
 import { useDashboard } from '@/composables/useDashboard.js'
+import { useSettings } from '@/composables/useSettings.js'
 
 const { sidebarCollapsed, toggleSidebar, notifications, unreadCount, markAllRead } = useDashboard()
 
@@ -114,6 +117,9 @@ const notifOpen  = ref(false)
 
 const page = usePage()
 const auth = computed(() => page.props.auth ?? {})
+const { get: setting, loaded } = useSettings()
+
+const favicon         = computed(() => setting('general', 'site_favicon', ''))
 
 const userInitials = computed(() => {
   const name = auth.value?.user?.name ?? ''
