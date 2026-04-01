@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 // so session-based auth works out of the box.
 
 // Public — no auth required
+Route::get('settings/public',           [SettingController::class, 'publicIndex']);
 Route::get('pages/{slug}',              [PageController::class, 'show']);
 Route::get('menus/{location}/items',    [MenuController::class, 'publicMenu']);
 Route::get('articles/featured',          [ArticleController::class, 'featured']);

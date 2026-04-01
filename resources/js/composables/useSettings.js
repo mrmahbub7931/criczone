@@ -9,7 +9,7 @@ const loading  = ref(false)
 export function useSettings() {
   if (!loaded.value && !loading.value) {
     loading.value = true
-    axios.get('/api/settings')
+    axios.get('/api/settings/public')
       .then(({ data }) => { settings.value = data; loaded.value = true })
       .catch(() => {})
       .finally(() => { loading.value = false })

@@ -29,7 +29,20 @@ class SettingController extends Controller
         'poll'       => ['poll_enabled'],
     ];
 
-    /** GET /api/settings */
+    /** GET /api/settings/public — no auth, safe groups only (no smtp passwords) */
+    public function publicIndex(): JsonResponse
+    {
+        $excluded = ['smtp'];
+        $all      = Setting::getAllGrouped();
+
+        foreach ($excluded as $group) {
+            unset($all[$group]);
+        }
+
+        return response()->json($all);
+    }
+
+    /** GET /api/settings — admin auth required, all groups */
     public function index(): JsonResponse
     {
         return response()->json(Setting::getAllGrouped());
