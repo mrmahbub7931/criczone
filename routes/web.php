@@ -4,6 +4,9 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Maintenance page (always accessible)
+Route::get('/maintenance', fn () => response()->view('maintenance'))->name('maintenance');
+
 // Public
 Route::get('/', fn () => Inertia::render('Home'))->name('home');
 Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', ['slug' => $slug]))->name('page.show');
