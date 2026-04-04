@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UploadController extends Controller
 {
@@ -14,10 +14,18 @@ class UploadController extends Controller
             'image' => ['required', 'file', 'image', 'max:4096'],
         ]);
 
-        $path = $request->file('image')->store('articles', 'public');
+        $file      = $request->file('image');
+        $filename  = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $dest      = public_path('uploads/articles');
+
+        if (! is_dir($dest)) {
+            mkdir($dest, 0775, true);
+        }
+
+        $file->move($dest, $filename);
 
         return response()->json([
-            'url' => Storage::disk('public')->url($path),
+            'url' => '/uploads/articles/' . $filename,
         ]);
     }
 }

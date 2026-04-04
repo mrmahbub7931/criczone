@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SettingController extends Controller
 {
@@ -77,8 +77,16 @@ class SettingController extends Controller
             'type' => ['required', 'in:logo,favicon'],
         ]);
 
-        $path = $request->file('file')->store('settings', 'public');
-        $url  = Storage::disk('public')->url($path);
+        $file     = $request->file('file');
+        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $dest     = public_path('uploads/settings');
+
+        if (! is_dir($dest)) {
+            mkdir($dest, 0775, true);
+        }
+
+        $file->move($dest, $filename);
+        $url = '/uploads/settings/' . $filename;
 
         // Persist immediately so it survives even if the full form isn't re-saved
         $key = $request->input('type') === 'favicon' ? 'site_favicon' : 'site_logo';
