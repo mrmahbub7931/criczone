@@ -35,11 +35,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->only('id', 'name', 'email', 'avatar', 'status'),
-                'roles' => $request->user()?->roles->pluck('name') ?? [],
+                'user'        => $user?->only('id', 'name', 'email', 'avatar', 'status'),
+                'roles'       => $user?->roles->pluck('name') ?? [],
+                'permissions' => $user
+                    ? ($user->hasRole('admin')
+                        ? ['*']   // admin wildcard — frontend treats as "all allowed"
+                        : $user->roles->load('permissions')->flatMap(
+                              fn ($r) => $r->permissions->pluck('name')
+                          )->unique()->values())
+                    : [],
             ],
         ];
     }

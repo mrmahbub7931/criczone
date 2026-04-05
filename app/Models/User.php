@@ -54,6 +54,21 @@ class User extends Authenticatable
         return $this->roles()->whereIn('name', $roles)->exists();
     }
 
+    /**
+     * Check if the user has a specific permission through any of their roles.
+     * Admin role always has all permissions.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        return $this->roles()
+            ->whereHas('permissions', fn ($q) => $q->where('name', $permission))
+            ->exists();
+    }
+
     public function assignRole(string|Role $role): void
     {
         if (is_string($role)) {

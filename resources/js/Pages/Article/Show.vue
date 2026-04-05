@@ -81,8 +81,21 @@
           </span>
         </div>
 
-        <!-- Featured image -->
-        <div v-if="article.featured_image" class="mb-8 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Video embed (takes priority over featured image when present) -->
+        <div v-if="article.video_embed_url" class="mb-8 rounded-2xl overflow-hidden shadow-lg">
+          <div class="relative w-full" style="padding-top: 56.25%">
+            <iframe
+              :src="article.video_embed_url"
+              class="absolute inset-0 w-full h-full"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            />
+          </div>
+        </div>
+
+        <!-- Featured image (shown only when no video) -->
+        <div v-else-if="article.featured_image" class="mb-8 rounded-2xl overflow-hidden shadow-lg">
           <img
             :src="article.featured_image"
             :alt="article.title"

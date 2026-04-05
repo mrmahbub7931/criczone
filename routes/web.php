@@ -7,6 +7,9 @@ use Inertia\Inertia;
 // Maintenance page (always accessible)
 Route::get('/maintenance', fn () => response()->view('maintenance'))->name('maintenance');
 
+// Developer documentation — admin only
+Route::get('/dev/docs', fn () => Inertia::render('DevDocs'))->middleware(['auth', 'role:admin'])->name('dev.docs');
+
 // Public
 Route::get('/', fn () => Inertia::render('Home'))->name('home');
 Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', ['slug' => $slug]))->name('page.show');
@@ -14,6 +17,7 @@ Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', [
 Route::get('/article/{slug}', fn (string $slug) => Inertia::render('Article/Show', ['slug' => $slug]))->name('article.show');
 Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Category/Show', ['slug' => $slug]))->name('category');
 Route::get('/live-scores',     fn () => Inertia::render('LiveScores'))->name('live-scores');
+Route::get('/videos',          fn () => Inertia::render('Videos'))->name('videos');
 Route::get('/newsletter/unsubscribe/{token}', [\App\Http\Controllers\NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 Route::get('/search',          fn () => Inertia::render('Search'))->name('search');
 
@@ -30,6 +34,7 @@ Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(fun
     Route::get('/categories',  fn () => Inertia::render('Dashboard/Categories'))->name('dashboard.categories');
     Route::get('/live-scores', fn () => Inertia::render('Dashboard/LiveScores'))->name('dashboard.live-scores');
     Route::get('/settings',    fn () => Inertia::render('Dashboard/Settings'))->name('dashboard.settings');
+    Route::get('/videos',      fn () => Inertia::render('Dashboard/Videos/Index'))->name('dashboard.videos');
     Route::get('/menus',       fn () => Inertia::render('Dashboard/Menus/Index'))->name('dashboard.menus');
 
     // Admin only

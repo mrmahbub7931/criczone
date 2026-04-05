@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureHasPermission
+{
+    /**
+     * Usage: middleware('permission:articles.create')
+     * Multiple: middleware('permission:articles.create,articles.edit')  — user needs ANY one
+     */
+    public function handle(Request $request, Closure $next, string ...$permissions): Response
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        foreach ($permissions as $permission) {
+            if ($user->hasPermission($permission)) {
+                return $next($request);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Access denied. You do not have the required permission.',
+        ], 403);
+    }
+}

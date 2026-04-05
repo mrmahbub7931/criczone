@@ -168,6 +168,22 @@
                 </div>
               </div>
             </div>
+            <!-- Video URL -->
+            <div class="sm:col-span-2">
+              <label class="label">Video URL <span class="font-normal text-gray-400">(YouTube, Vimeo, Dailymotion — optional)</span></label>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
+                <input v-model="form.video_url" type="text" :class="field(errors.video_url)" placeholder="https://youtube.com/watch?v=… or youtu.be/… or vimeo.com/…" />
+              </div>
+              <Err :e="errors.video_url" />
+              <!-- Preview embed -->
+              <div v-if="videoEmbedPreview" class="mt-3 rounded-xl overflow-hidden border border-gray-200" style="padding-top:0">
+                <div class="relative w-full" style="padding-top:56.25%">
+                  <iframe :src="videoEmbedPreview" class="absolute inset-0 w-full h-full rounded-xl" frameborder="0" allowfullscreen />
+                </div>
+              </div>
+              <p v-else-if="form.video_url && !videoEmbedPreview" class="text-xs text-amber-500 mt-1">URL not recognised — supported: YouTube, Vimeo, Dailymotion</p>
+            </div>
             <!-- Is Featured -->
             <div class="flex items-center gap-2">
               <input v-model="form.is_featured" type="checkbox" id="is_featured" class="w-4 h-4 accent-[#0D47A1] rounded" />
@@ -207,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, defineComponent, h } from 'vue'
+import { ref, computed, watch, onMounted, defineComponent, h } from 'vue'
 import axios from 'axios'
 import { Plus, Search, Pencil, Trash2, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
@@ -233,7 +249,7 @@ const errors       = ref({})
 const deleteTarget = ref(null)
 const toast        = ref('')
 
-const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', category_id: '', status: 'draft', is_featured: false })
+const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', status: 'draft', is_featured: false })
 const form = ref(blankForm())
 
 // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -261,11 +277,27 @@ onMounted(() => { fetchArticles(); fetchCategories() })
 watch([page, search, filterStatus, filterCategory], fetchArticles)
 watch([search, filterStatus, filterCategory], () => { page.value = 1 })
 
+// ── Video embed preview ───────────────────────────────────────────────────
+const videoEmbedPreview = computed(() => {
+  const url = form.value.video_url?.trim()
+  if (!url) return null
+  if (url.includes('youtube.com/embed/') || url.includes('player.vimeo.com') || url.includes('dailymotion.com/embed/')) return url
+  let m
+  if ((m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/))) return `https://www.youtube.com/embed/${m[1]}`
+  if ((m = url.match(/vimeo\.com\/(\d+)/))) return `https://player.vimeo.com/video/${m[1]}`
+  if ((m = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/))) return `https://www.dailymotion.com/embed/video/${m[1]}`
+  return null
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 const autoSlug = () => {
-  if (!editId.value) {
-    form.value.slug = form.value.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  }
+  form.value.slug = form.value.title
+    .trim()
+    .toLowerCase()
+    .replace(/[\s]+/g, '-')
+    .replace(/[^\p{L}\p{M}\p{N}-]/gu, '')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 const showToast = (msg) => { toast.value = msg; setTimeout(() => { toast.value = '' }, 2500) }
@@ -299,7 +331,7 @@ const openCreate = () => { editId.value = null; form.value = blankForm(); errors
 
 const openEdit = (a) => {
   editId.value = a.id
-  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', category_id: a.category_id, status: a.status, is_featured: a.is_featured }
+  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', video_url: a.video_url ?? '', category_id: a.category_id, status: a.status, is_featured: a.is_featured }
   errors.value = {}
   modal.value  = true
 }

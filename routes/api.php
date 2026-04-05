@@ -26,6 +26,7 @@ Route::get('articles/featured',          [ArticleController::class, 'featured'])
 Route::get('articles/latest',            [ArticleController::class, 'latest']);
 Route::get('articles/trending',          [ArticleController::class, 'trending']);
 Route::get('articles/most-read-week',    [ArticleController::class, 'mostReadWeek']);
+Route::get('articles/videos',            [ArticleController::class, 'videos']);
 Route::get('articles/{slug}/related',    [ArticleController::class, 'related']);
 Route::get('articles/{slug}',            [ArticleController::class, 'showBySlug']);
 Route::get('poll/active',                [PollController::class,   'active']);
@@ -72,9 +73,11 @@ Route::middleware('auth')->group(function () {
         Route::apiResource('categories', CategoryController::class)->except('show');
     });
 
-    // ── Roles ─────────────────────────────────────────────────────────────
+    // ── Roles & Permissions ───────────────────────────────────────────────
     Route::apiResource('roles', RoleController::class);
-    Route::get('roles/{role}/users', [RoleController::class, 'users']);
+    Route::get('roles/{role}/users',          [RoleController::class, 'users']);
+    Route::put('roles/{role}/permissions',    [RoleController::class, 'syncPermissions']);
+    Route::get('permissions',                 [RoleController::class, 'allPermissions']);
 
     // ── Users ─────────────────────────────────────────────────────────────
     Route::apiResource('users', UserController::class);

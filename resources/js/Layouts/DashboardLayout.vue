@@ -134,6 +134,7 @@ const titleMap = {
   '/dashboard/users':       'Users',
   '/dashboard/roles':       'Roles',
   '/dashboard/settings':    'Settings',
+  '/dashboard/videos':      'Video News',
 }
 
 const pageTitle = computed(() => {

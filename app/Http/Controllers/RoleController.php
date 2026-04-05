@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,13 +11,46 @@ use Illuminate\Validation\Rule;
 class RoleController extends Controller
 {
     /**
-     * List all roles with user counts.
+     * List all roles with user counts and their permissions.
      */
     public function index(): JsonResponse
     {
-        $roles = Role::withCount('users')->orderBy('name')->get();
+        $roles = Role::withCount('users')
+            ->with('permissions:id,name,display_name,group')
+            ->orderBy('name')
+            ->get();
 
         return response()->json($roles);
+    }
+
+    /**
+     * GET /api/permissions — all permissions grouped by module.
+     */
+    public function allPermissions(): JsonResponse
+    {
+        $permissions = Permission::orderBy('group')->orderBy('name')->get();
+
+        $grouped = $permissions->groupBy('group')->map(fn ($items) => $items->values());
+
+        return response()->json($grouped);
+    }
+
+    /**
+     * PUT /api/roles/{role}/permissions — sync permissions for a role.
+     */
+    public function syncPermissions(Request $request, Role $role): JsonResponse
+    {
+        $request->validate([
+            'permissions'   => ['present', 'array'],
+            'permissions.*' => ['integer', 'exists:permissions,id'],
+        ]);
+
+        $role->permissions()->sync($request->permissions);
+
+        return response()->json([
+            'message'     => 'Permissions updated.',
+            'permissions' => $role->permissions()->get(['id', 'name', 'display_name', 'group']),
+        ]);
     }
 
     /**

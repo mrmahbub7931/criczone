@@ -109,21 +109,38 @@ class ArticleController extends Controller
         return response()->json($articles);
     }
 
+    /** GET /api/articles/videos — public, paginated list of video articles */
+    public function videos(Request $request): JsonResponse
+    {
+        $perPage = max(1, min($request->integer('per_page', 12), 48));
+
+        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->whereNotNull('video_url')
+            ->where('video_url', '!=', '')
+            ->orderByDesc('published_at')
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'video_url', 'views', 'published_at', 'category_id', 'author_id']);
+
+        return response()->json($articles);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'title'          => ['required', 'string', 'max:255'],
             'slug'           => ['required', 'string', 'max:255', 'unique:articles,slug'],
             'excerpt'        => ['nullable', 'string'],
-            'content'        => ['required', 'string'],
+            'content'        => ['nullable', 'string'],
             'featured_image' => ['nullable', 'string', 'max:500'],
+            'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['required', 'integer', 'exists:categories,id'],
             'status'         => ['required', Rule::in(['draft', 'published'])],
             'is_featured'    => ['boolean'],
             'published_at'   => ['nullable', 'date'],
         ]);
 
-        $data['author_id']    = $request->user()->id;
+        $data['content']   = $data['content'] ?? '';
+        $data['author_id'] = $request->user()->id;
         $data['published_at'] = $data['status'] === 'published'
             ? ($data['published_at'] ?? now())
             : null;
@@ -140,8 +157,9 @@ class ArticleController extends Controller
             'title'          => ['sometimes', 'string', 'max:255'],
             'slug'           => ['sometimes', 'string', 'max:255', Rule::unique('articles')->ignore($article->id)],
             'excerpt'        => ['nullable', 'string'],
-            'content'        => ['sometimes', 'string'],
+            'content'        => ['nullable', 'string'],
             'featured_image' => ['nullable', 'string', 'max:500'],
+            'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['sometimes', 'integer', 'exists:categories,id'],
             'status'         => ['sometimes', Rule::in(['draft', 'published'])],
             'is_featured'    => ['boolean'],

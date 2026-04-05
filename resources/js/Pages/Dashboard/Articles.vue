@@ -157,6 +157,10 @@
               <input v-model="form.imageUrl" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="https://..." />
             </div>
             <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Video URL <span class="font-normal text-gray-400">(YouTube, Vimeo, Dailymotion)</span></label>
+              <input v-model="form.videoUrl" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="https://youtube.com/watch?v=..." />
+            </div>
+            <div>
               <label class="block text-xs font-semibold text-gray-600 mb-1">Read Time</label>
               <input v-model="form.readTime" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="5 min read" />
             </div>
@@ -211,7 +215,7 @@ const modal        = ref(false)
 const editId       = ref(null)
 const deleteTarget = ref(null)
 
-const blankForm = () => ({ title: '', excerpt: '', category: '', author: '', imageUrl: '', readTime: '' })
+const blankForm = () => ({ title: '', excerpt: '', category: '', author: '', imageUrl: '', videoUrl: '', readTime: '' })
 const form = ref(blankForm())
 
 const categoryNames = computed(() => categoriesData.map(c => c.name))
@@ -239,7 +243,7 @@ const openAdd = () => {
 
 const openEdit = (art) => {
   editId.value = art.id
-  form.value = { title: art.title, excerpt: art.excerpt, category: art.category, author: art.author, imageUrl: art.imageUrl, readTime: art.readTime }
+  form.value = { title: art.title, excerpt: art.excerpt, category: art.category, author: art.author, imageUrl: art.imageUrl, videoUrl: art.videoUrl ?? '', readTime: art.readTime }
   modal.value = true
 }
 
