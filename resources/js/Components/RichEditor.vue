@@ -84,6 +84,11 @@
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/></svg>
       </button>
 
+      <!-- Social embed -->
+      <button type="button" @click="openSocialDialog" :class="tb(false)" title="Embed social post (Twitter/X, Instagram, Facebook, TikTok, LinkedIn)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
+
       <div class="w-px h-5 bg-gray-200 mx-0.5" />
 
       <!-- Misc -->
@@ -159,6 +164,28 @@
           <button type="button" @click="videoDialog = false" class="px-2.5 py-1 bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg">Cancel</button>
         </div>
         <p v-if="videoUrlError" class="text-[11px] text-red-500 px-3 pb-2">{{ videoUrlError }}</p>
+      </div>
+    </Transition>
+
+    <!-- ── Social embed dialog ───────────────────────────────────────────── -->
+    <Transition enter-active-class="transition-all duration-150" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+      <div v-if="socialDialog" class="border-b border-teal-100 bg-teal-50">
+        <div class="flex items-center gap-2 px-3 py-2">
+          <svg class="w-4 h-4 text-teal-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <input
+            ref="socialInputRef"
+            v-model="socialUrl"
+            type="text"
+            placeholder="Paste Twitter/X, Instagram, Facebook, TikTok or LinkedIn post URL…"
+            class="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+            @keydown.enter.prevent="insertSocial"
+            @keydown.escape.prevent="socialDialog = false"
+          />
+          <span v-if="socialPlatform" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 capitalize shrink-0">{{ socialPlatform }}</span>
+          <button type="button" @click="insertSocial"          class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors">Embed</button>
+          <button type="button" @click="socialDialog = false"  class="px-2.5 py-1 bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg">Cancel</button>
+        </div>
+        <p v-if="socialUrlError" class="text-[11px] text-red-500 px-3 pb-2">{{ socialUrlError }}</p>
       </div>
     </Transition>
 
@@ -260,6 +287,74 @@ const VideoEmbed = Node.create({
   },
 })
 
+// ── Custom SocialEmbed node ───────────────────────────────────────────────────
+const SOCIAL_PALETTES = {
+  twitter:   { color: '#1DA1F2', label: 'X / Twitter', icon: '𝕏'  },
+  instagram: { color: '#E1306C', label: 'Instagram',   icon: '📷' },
+  facebook:  { color: '#1877F2', label: 'Facebook',    icon: 'f'  },
+  tiktok:    { color: '#010101', label: 'TikTok',      icon: '♪'  },
+  linkedin:  { color: '#0A66C2', label: 'LinkedIn',    icon: 'in' },
+}
+
+const SocialEmbed = Node.create({
+  name: 'socialEmbed',
+  group: 'block',
+  atom: true,
+
+  addAttributes() {
+    return {
+      platform: { default: null },
+      url:      { default: null },
+    }
+  },
+
+  parseHTML() {
+    return [{
+      tag: 'div[data-social-embed]',
+      getAttrs: el => ({
+        platform: el.getAttribute('data-social-embed'),
+        url:      el.getAttribute('data-social-url'),
+      }),
+    }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes({
+      'data-social-embed': HTMLAttributes.platform,
+      'data-social-url':   HTMLAttributes.url,
+    })]
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const { platform, url } = node.attrs
+      const p = SOCIAL_PALETTES[platform] ?? { color: '#6b7280', label: platform || 'Social', icon: '🔗' }
+
+      const dom = document.createElement('div')
+      dom.setAttribute('data-social-embed', platform)
+      dom.setAttribute('data-social-url', url)
+      dom.setAttribute('contenteditable', 'false')
+      dom.style.cssText = `display:flex;align-items:center;gap:10px;padding:12px 16px;margin:12px 0;border:2px dashed ${p.color}55;border-radius:10px;background:${p.color}11;cursor:default;user-select:none;`
+      dom.innerHTML = `
+        <div style="width:34px;height:34px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0">${p.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;color:${p.color};text-transform:uppercase;letter-spacing:.05em">${p.label} Embed</div>
+          <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${url ?? ''}</div>
+        </div>
+        <span style="font-size:10px;font-weight:700;background:${p.color}22;color:${p.color};padding:2px 8px;border-radius:999px;flex-shrink:0">EMBED</span>
+      `
+      return { dom }
+    }
+  },
+
+  addCommands() {
+    return {
+      insertSocialEmbed: (attrs) => ({ commands }) =>
+        commands.insertContent({ type: this.name, attrs }),
+    }
+  },
+})
+
 // ── Props / emits ─────────────────────────────────────────────────────────────
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -269,19 +364,23 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 // ── Refs ──────────────────────────────────────────────────────────────────────
-const imgInputRef   = ref(null)
+const imgInputRef    = ref(null)
 const colorPickerRef = ref(null)
-const linkInputRef  = ref(null)
-const videoInputRef = ref(null)
+const linkInputRef   = ref(null)
+const videoInputRef  = ref(null)
+const socialInputRef = ref(null)
 
-const imgUploading = ref(false)
-const linkDialog   = ref(false)
-const linkUrl      = ref('')
-const videoDialog  = ref(false)
-const videoUrl     = ref('')
-const videoUrlError = ref('')
-const sourceMode   = ref(false)
-const sourceHtml   = ref('')
+const imgUploading   = ref(false)
+const linkDialog     = ref(false)
+const linkUrl        = ref('')
+const videoDialog    = ref(false)
+const videoUrl       = ref('')
+const videoUrlError  = ref('')
+const socialDialog   = ref(false)
+const socialUrl      = ref('')
+const socialUrlError = ref('')
+const sourceMode     = ref(false)
+const sourceHtml     = ref('')
 
 // ── Colour helper ─────────────────────────────────────────────────────────────
 const activeColor = computed(() => e.value?.getAttributes('textStyle')?.color ?? '#000000')
@@ -374,6 +473,37 @@ const insertVideo = () => {
   videoDialog.value = false
 }
 
+// ── Social embed ──────────────────────────────────────────────────────────────
+function detectSocialPlatform(url) {
+  if (!url) return null
+  if (/twitter\.com|x\.com/.test(url))                         return 'twitter'
+  if (/instagram\.com\/(p|reel|tv)\//.test(url))               return 'instagram'
+  if (/facebook\.com/.test(url))                               return 'facebook'
+  if (/tiktok\.com\/@[^/]+\/video/.test(url))                  return 'tiktok'
+  if (/linkedin\.com\/(posts|feed|pulse)/.test(url))           return 'linkedin'
+  return null
+}
+
+const socialPlatform = computed(() => detectSocialPlatform(socialUrl.value.trim()))
+
+const openSocialDialog = () => {
+  socialUrl.value      = ''
+  socialUrlError.value = ''
+  socialDialog.value   = true
+  nextTick(() => socialInputRef.value?.focus())
+}
+
+const insertSocial = () => {
+  const url      = socialUrl.value.trim()
+  const platform = detectSocialPlatform(url)
+  if (!platform) {
+    socialUrlError.value = 'URL not recognised. Paste a Twitter/X, Instagram, Facebook, TikTok or LinkedIn post URL.'
+    return
+  }
+  e.value?.chain().focus().insertSocialEmbed({ platform, url }).run()
+  socialDialog.value = false
+}
+
 // ── Editor ────────────────────────────────────────────────────────────────────
 const e = useEditor({
   content: props.modelValue,
@@ -390,6 +520,7 @@ const e = useEditor({
     TextStyle,
     Color,
     VideoEmbed,
+    SocialEmbed,
   ],
   onUpdate: ({ editor }) => {
     const html = editor.getHTML()

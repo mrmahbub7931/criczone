@@ -231,7 +231,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
@@ -264,6 +264,56 @@ const formatDate = (d) => d
   ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : ''
 
+// ── Social embed processing ───────────────────────────────────────────────────
+const loadedScripts = new Set()
+
+const loadScript = (src) => {
+  if (loadedScripts.has(src)) {
+    if (src.includes('twitter') && window.twttr)   window.twttr.widgets.load()
+    if (src.includes('instagram') && window.instgrm) window.instgrm.Embeds.process()
+    return
+  }
+  loadedScripts.add(src)
+  const s = document.createElement('script')
+  s.src = src; s.async = true
+  document.body.appendChild(s)
+}
+
+const processSocialEmbeds = () => {
+  nextTick(() => {
+    document.querySelectorAll('[data-social-embed]:not([data-processed])').forEach(el => {
+      const platform = el.getAttribute('data-social-embed')
+      const url      = el.getAttribute('data-social-url')
+      if (!url) return
+      el.setAttribute('data-processed', '1')
+
+      if (platform === 'twitter') {
+        el.innerHTML = `<blockquote class="twitter-tweet" data-dnt="true"><a href="${url}"></a></blockquote>`
+        loadScript('https://platform.twitter.com/widgets.js')
+
+      } else if (platform === 'instagram') {
+        el.innerHTML = `<blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="${url}" data-instgrm-version="14" style="max-width:540px;width:100%;margin:0 auto"></blockquote>`
+        loadScript('https://www.instagram.com/embed.js')
+
+      } else if (platform === 'facebook') {
+        // Use Facebook's plugin iframe — no SDK needed, no console errors
+        const encoded = encodeURIComponent(url)
+        el.innerHTML = `<div style="max-width:500px;margin:0 auto"><iframe src="https://www.facebook.com/plugins/post.php?href=${encoded}&show_text=true&width=500" width="500" height="400" style="border:none;overflow:hidden;width:100%;border-radius:8px" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay;clipboard-write;encrypted-media;picture-in-picture;web-share"></iframe></div>`
+
+      } else if (platform === 'tiktok') {
+        const m = url.match(/\/video\/(\d+)/)
+        el.innerHTML = `<blockquote class="tiktok-embed" cite="${url}" data-video-id="${m?.[1] ?? ''}" style="max-width:605px;min-width:325px;margin:0 auto"><section></section></blockquote>`
+        loadScript('https://www.tiktok.com/embed.js')
+
+      } else if (platform === 'linkedin') {
+        el.innerHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;background:#f8fafc;max-width:540px;"><div style="width:36px;height:36px;background:#0A66C2;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0A66C2">View on LinkedIn</div><div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">${url}</div></div></a>`
+      }
+    })
+  })
+}
+
+watch(article, () => processSocialEmbeds())
+
 const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(articleUrl.value)
@@ -290,6 +340,7 @@ onMounted(async () => {
     ])
     if (artRes.status === 'fulfilled') {
       article.value = artRes.value.data
+      processSocialEmbeds()
     } else {
       notFound.value = true
     }

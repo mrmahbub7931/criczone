@@ -34,6 +34,12 @@
         <!-- Page title -->
         <h1 class="font-bold text-gray-800 text-base truncate flex-1">{{ pageTitle }}</h1>
 
+        <!-- View site -->
+        <a href="/" target="_blank" title="View frontend site"
+          class="p-2 text-gray-400 hover:text-[#0D47A1] hover:bg-gray-100 rounded-lg transition-colors">
+          <ExternalLink :size="18" />
+        </a>
+
         <!-- Notifications -->
         <div class="relative">
           <button
@@ -105,7 +111,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Head, Link, usePage } from '@inertiajs/vue3'
-import { Bell, Menu, LogOut } from 'lucide-vue-next'
+import { Bell, Menu, LogOut, ExternalLink } from 'lucide-vue-next'
 import DashboardSidebar from '@/Components/DashboardSidebar.vue'
 import { useDashboard } from '@/composables/useDashboard.js'
 import { useSettings } from '@/composables/useSettings.js'
