@@ -3,15 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
+use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ArticleController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $articles = Article::with(['category:id,name', 'author:id,name'])
+        $articles = Article::with(['category:id,name', 'author:id,name', 'tags'])
             ->when($request->search, fn ($q, $s) =>
                 $q->where('title', 'like', "%{$s}%")
                   ->orWhere('excerpt', 'like', "%{$s}%")
@@ -32,15 +34,16 @@ class ArticleController extends Controller
 
         $articles = Article::with(['category:id,name,color'])
             ->where('status', 'published')
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->orderByDesc('views')
             ->orderByDesc('published_at')
             ->limit($limit)
-            ->get(['id', 'title', 'slug', 'views', 'category_id']);
+            ->get(['id', 'title', 'slug', 'views', 'category_id', 'language']);
 
         return response()->json($articles);
     }
 
-    /** GET /api/search?q= — public */
+    /** GET /api/search?q=&lang= — public */
     public function search(Request $request): JsonResponse
     {
         $q = trim($request->string('q'));
@@ -51,18 +54,19 @@ class ArticleController extends Controller
 
         $results = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($query) => $query->where('language', $request->lang))
             ->where(fn ($query) =>
                 $query->where('title', 'like', "%{$q}%")
                       ->orWhere('excerpt', 'like', "%{$q}%")
             )
             ->orderByDesc('published_at')
             ->limit(20)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'author_id']);
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'author_id', 'language']);
 
         return response()->json(['data' => $results, 'query' => $q]);
     }
 
-    /** GET /api/articles/latest — public, paginated, optional ?category=IPL */
+    /** GET /api/articles/latest — public, paginated, optional ?category=IPL&lang=bn */
     public function latest(Request $request): JsonResponse
     {
         $default = (int) \App\Models\Setting::where('key', 'latest_per_page')->value('value') ?: 6;
@@ -70,11 +74,13 @@ class ArticleController extends Controller
 
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
+            ->where(fn ($q) => $q->whereNull('video_url')->orWhere('video_url', ''))
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->when($request->category, fn ($q, $cat) =>
                 $q->whereHas('category', fn ($q2) => $q2->where('name', $cat))
             )
             ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id']);
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'language', 'views', 'published_at', 'category_id', 'author_id']);
 
         return response()->json($articles);
     }
@@ -82,12 +88,11 @@ class ArticleController extends Controller
     /** GET /api/articles/{slug} — public, single article by slug */
     public function showBySlug(string $slug): JsonResponse
     {
-        $article = Article::with(['category:id,name,color', 'author:id,name'])
+        $article = Article::with(['category:id,name,color', 'author:id,name', 'tags'])
             ->where('status', 'published')
             ->where('slug', $slug)
             ->firstOrFail();
 
-        // Increment views
         $article->increment('views');
 
         return response()->json($article);
@@ -102,9 +107,25 @@ class ArticleController extends Controller
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
             ->where('is_featured', true)
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->orderByDesc('published_at')
             ->limit($limit)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id']);
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+
+        return response()->json($articles);
+    }
+
+    /** GET /api/articles/photo-of-day — public, latest photo-of-day articles */
+    public function photoOfDay(Request $request): JsonResponse
+    {
+        $perPage = max(1, min($request->integer('per_page', 12), 48));
+
+        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+            ->where('status', 'published')
+            ->where('is_photo_day', true)
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
+            ->orderByDesc('published_at')
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_photo_day', 'views', 'published_at', 'category_id', 'author_id', 'language']);
 
         return response()->json($articles);
     }
@@ -118,8 +139,9 @@ class ArticleController extends Controller
             ->where('status', 'published')
             ->whereNotNull('video_url')
             ->where('video_url', '!=', '')
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'video_url', 'views', 'published_at', 'category_id', 'author_id']);
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'video_url', 'views', 'published_at', 'category_id', 'author_id', 'language']);
 
         return response()->json($articles);
     }
@@ -135,8 +157,12 @@ class ArticleController extends Controller
             'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['required', 'integer', 'exists:categories,id'],
             'status'         => ['required', Rule::in(['draft', 'published'])],
+            'language'       => ['sometimes', Rule::in(['bn', 'en'])],
             'is_featured'    => ['boolean'],
+            'is_photo_day'   => ['boolean'],
             'published_at'   => ['nullable', 'date'],
+            'tags'           => ['nullable', 'array'],
+            'tags.*'         => ['string', 'max:50'],
         ]);
 
         $data['content']   = $data['content'] ?? '';
@@ -145,8 +171,14 @@ class ArticleController extends Controller
             ? ($data['published_at'] ?? now())
             : null;
 
+        $tagNames = $data['tags'] ?? [];
+        unset($data['tags']);
+
+        $article = Article::create($data);
+        $article->tags()->sync($this->resolveTagIds($tagNames));
+
         return response()->json(
-            Article::create($data)->load(['category:id,name', 'author:id,name']),
+            $article->load(['category:id,name', 'author:id,name', 'tags']),
             201
         );
     }
@@ -162,17 +194,43 @@ class ArticleController extends Controller
             'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['sometimes', 'integer', 'exists:categories,id'],
             'status'         => ['sometimes', Rule::in(['draft', 'published'])],
+            'language'       => ['sometimes', Rule::in(['bn', 'en'])],
             'is_featured'    => ['boolean'],
+            'is_photo_day'   => ['boolean'],
             'published_at'   => ['nullable', 'date'],
+            'tags'           => ['nullable', 'array'],
+            'tags.*'         => ['string', 'max:50'],
         ]);
 
         if (isset($data['status']) && $data['status'] === 'published' && !$article->published_at) {
             $data['published_at'] = now();
         }
 
+        $tagNames = $data['tags'] ?? null;
+        unset($data['tags']);
+
         $article->update($data);
 
-        return response()->json($article->load(['category:id,name', 'author:id,name']));
+        if ($tagNames !== null) {
+            $article->tags()->sync($this->resolveTagIds($tagNames));
+        }
+
+        return response()->json($article->load(['category:id,name', 'author:id,name', 'tags']));
+    }
+
+    /** Find-or-create tags by name and return their IDs. */
+    private function resolveTagIds(array $names): array
+    {
+        return collect($names)
+            ->filter()
+            ->map(fn ($name) => trim($name))
+            ->unique()
+            ->map(fn ($name) => Tag::firstOrCreate(
+                ['slug' => Str::slug($name)],
+                ['name' => $name]
+            )->id)
+            ->values()
+            ->all();
     }
 
     public function destroy(Article $article): JsonResponse
@@ -192,9 +250,10 @@ class ArticleController extends Controller
             ->where('status', 'published')
             ->where('id', '!=', $article->id)
             ->where('category_id', $article->category_id)
+            ->where('language', $article->language ?? 'bn')
             ->orderByDesc('published_at')
             ->limit(3)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'views', 'category_id', 'author_id']);
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'views', 'category_id', 'author_id', 'language']);
 
         return response()->json($related);
     }
@@ -207,19 +266,21 @@ class ArticleController extends Controller
 
         $articles = Article::with(['category:id,name,color'])
             ->where('status', 'published')
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->where('created_at', '>=', now()->subDays(7))
             ->orderByDesc('views')
             ->limit($limit)
-            ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
+            ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at', 'language']);
 
         // Fallback: if fewer than 3 results in last 7 days, expand to 30 days
         if ($articles->count() < 3) {
             $articles = Article::with(['category:id,name,color'])
                 ->where('status', 'published')
+                ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
                 ->where('created_at', '>=', now()->subDays(30))
                 ->orderByDesc('views')
                 ->limit($limit)
-                ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at']);
+                ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at', 'language']);
         }
 
         return response()->json($articles);

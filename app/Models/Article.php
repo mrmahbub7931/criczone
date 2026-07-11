@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Article extends Model
 {
@@ -17,7 +18,9 @@ class Article extends Model
         'category_id',
         'author_id',
         'status',
+        'language',
         'is_featured',
+        'is_photo_day',
         'published_at',
         'views',
     ];
@@ -26,6 +29,7 @@ class Article extends Model
 
     protected $casts = [
         'is_featured'  => 'boolean',
+        'is_photo_day' => 'boolean',
         'published_at' => 'datetime',
         'views'        => 'integer',
     ];
@@ -79,5 +83,10 @@ class Article extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class);
     }
 }

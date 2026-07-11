@@ -30,8 +30,9 @@ class CategoryController extends Controller
         $articles = $category->articles()
             ->with(['author:id,name'])
             ->where('status', 'published')
+            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id']);
+            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id', 'language']);
 
         return response()->json([
             'category' => $category,
@@ -44,8 +45,10 @@ class CategoryController extends Controller
     {
         $categories = Category::withCount(['articles' => fn ($q) => $q->where('status', 'published')])
             ->having('articles_count', '>', 0)
+            ->orderByDesc('is_pinned')
+            ->orderBy('sort_order')
             ->orderByDesc('articles_count')
-            ->get(['id', 'name', 'slug', 'color']);
+            ->get(['id', 'name', 'slug', 'color', 'is_pinned', 'sort_order', 'show_in_filter']);
 
         return response()->json($categories);
     }
@@ -57,6 +60,9 @@ class CategoryController extends Controller
             'slug'        => ['required', 'string', 'max:100', 'unique:categories,slug', 'regex:/^[a-z0-9\-]+$/'],
             'description' => ['nullable', 'string', 'max:500'],
             'color'       => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'is_pinned'      => ['sometimes', 'boolean'],
+            'sort_order'     => ['sometimes', 'integer', 'min:0', 'max:999'],
+            'show_in_filter' => ['sometimes', 'boolean'],
         ]);
 
         return response()->json(Category::create($data), 201);
@@ -69,6 +75,9 @@ class CategoryController extends Controller
             'slug'        => ['sometimes', 'string', 'max:100', Rule::unique('categories')->ignore($category->id), 'regex:/^[a-z0-9\-]+$/'],
             'description' => ['nullable', 'string', 'max:500'],
             'color'       => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'is_pinned'      => ['sometimes', 'boolean'],
+            'sort_order'     => ['sometimes', 'integer', 'min:0', 'max:999'],
+            'show_in_filter' => ['sometimes', 'boolean'],
         ]);
 
         $category->update($data);

@@ -45,7 +45,7 @@
             </div>
           </div>
           <span class="ml-auto text-sm font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-            {{ totalArticles }} articles
+            {{ totalArticles }} {{ t('categories.articles') }}
           </span>
         </div>
 
@@ -87,7 +87,7 @@
 
         <!-- Empty state -->
         <div v-if="articles.length === 0" class="text-center py-16 bg-white rounded-xl">
-          <p class="text-gray-400 text-sm">No published articles in this category yet.</p>
+          <p class="text-gray-400 text-sm">{{ t('categories.noArticles') }}</p>
         </div>
 
         <!-- Load More -->
@@ -101,7 +101,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
             </svg>
-            {{ loadingMore ? 'Loading…' : 'Load More' }}
+            {{ loadingMore ? t('common.loading') : t('home.loadMore') }}
           </button>
         </div>
 
@@ -111,12 +111,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { User } from 'lucide-vue-next'
 import { useSettings } from '@/composables/useSettings.js'
+import { useLocale } from '@/composables/useLocale.js'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ slug: { type: String, required: true } })
 
@@ -140,7 +143,7 @@ const totalArticles = ref(0)
 const hasMorePages = computed(() => currentPage.value < lastPage.value)
 
 const formatDate = (d) => d
-  ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  ? new Date(d).toLocaleDateString(locale.value === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : ''
 
 const fetchArticles = async (page = 1, append = false) => {
@@ -149,7 +152,7 @@ const fetchArticles = async (page = 1, append = false) => {
 
   try {
     const { data } = await axios.get(`/api/categories/${props.slug}/articles`, {
-      params: { page, per_page: catPerPage.value },
+      params: { page, per_page: catPerPage.value, lang: locale.value },
     })
     category.value      = data.category
     totalArticles.value = data.articles.total
@@ -169,4 +172,6 @@ const fetchArticles = async (page = 1, append = false) => {
 const loadMore = () => fetchArticles(currentPage.value + 1, true)
 
 onMounted(() => fetchArticles(1))
+
+watch(locale, () => { currentPage.value = 1; fetchArticles(1) })
 </script>

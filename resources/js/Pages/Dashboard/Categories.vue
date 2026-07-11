@@ -42,11 +42,24 @@
               <Tag :size="18" :style="{ color: cat.color || '#0D47A1' }" />
             </div>
             <div>
-              <h3 class="font-bold text-gray-900 text-sm">{{ cat.name }}</h3>
+              <div class="flex items-center gap-1.5">
+                <h3 class="font-bold text-gray-900 text-sm">{{ cat.name }}</h3>
+                <span v-if="cat.is_pinned" class="text-amber-400" title="Pinned">📌</span>
+              </div>
               <p class="text-xs text-gray-400 font-mono">{{ cat.slug }}</p>
             </div>
           </div>
           <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button @click="toggleFilter(cat)"
+              :title="cat.show_in_filter !== false ? 'Hide from Latest News filter' : 'Show in Latest News filter'"
+              :class="['p-1.5 rounded-lg transition-colors', cat.show_in_filter !== false ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-300 hover:text-blue-500 hover:bg-blue-50']">
+              <Filter :size="13" />
+            </button>
+            <button @click="togglePin(cat)"
+              :title="cat.is_pinned ? 'Unpin' : 'Pin to top'"
+              :class="['p-1.5 rounded-lg transition-colors', cat.is_pinned ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50']">
+              <component :is="cat.is_pinned ? PinOff : Pin" :size="13" />
+            </button>
             <button @click="openEdit(cat)" class="p-1.5 text-gray-400 hover:text-[#0D47A1] hover:bg-blue-50 rounded-lg transition-colors">
               <Pencil :size="13" />
             </button>
@@ -59,6 +72,9 @@
         <div class="flex items-center gap-2">
           <div class="w-3 h-3 rounded-full shrink-0 border border-white shadow-sm" :style="{ backgroundColor: cat.color || '#0D47A1' }" />
           <span class="text-xs text-gray-400 font-mono">{{ cat.color || 'no color' }}</span>
+          <span v-if="cat.sort_order" class="text-xs text-gray-300 font-mono">· #{{ cat.sort_order }}</span>
+          <span v-if="cat.show_in_filter === false"
+            class="ml-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Hidden from filter</span>
           <span class="ml-auto text-xs text-gray-400">{{ cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '' }}</span>
         </div>
       </div>
@@ -110,6 +126,37 @@
               </div>
               <p v-if="errors.color" class="text-xs text-red-500 mt-1">{{ errors.color }}</p>
             </div>
+
+            <!-- Sort order + Pin row -->
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Sort Order</label>
+                <input v-model.number="form.sort_order" type="number" min="0" max="999" placeholder="0"
+                  :class="fieldClass(errors.sort_order)" />
+                <p class="text-[10px] text-gray-400 mt-0.5">Lower = appears first</p>
+              </div>
+              <div class="flex flex-col gap-2 justify-center pt-4">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    @click="form.is_pinned = !form.is_pinned"
+                    :class="['w-9 h-5 rounded-full transition-colors relative', form.is_pinned ? 'bg-amber-400' : 'bg-gray-200']"
+                  >
+                    <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', form.is_pinned ? 'translate-x-4' : '']" />
+                  </div>
+                  <span class="text-xs font-semibold text-gray-600">📌 Pinned</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    @click="form.show_in_filter = !form.show_in_filter"
+                    :class="['w-9 h-5 rounded-full transition-colors relative', form.show_in_filter ? 'bg-blue-500' : 'bg-gray-200']"
+                  >
+                    <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', form.show_in_filter ? 'translate-x-4' : '']" />
+                  </div>
+                  <span class="text-xs font-semibold text-gray-600">🔍 Show in filter</span>
+                </label>
+              </div>
+            </div>
+
             <p v-if="errors.general" class="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{{ errors.general }}</p>
           </div>
 
@@ -148,7 +195,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Pencil, Trash2, Tag, Search } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Tag, Search, Pin, PinOff, Filter } from 'lucide-vue-next'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
 
 const categories  = ref([])
@@ -164,7 +211,7 @@ const errors      = ref({})
 const deleteTarget = ref(null)
 const toast       = ref('')
 
-const blankForm = () => ({ name: '', slug: '', description: '', color: '#0D47A1' })
+const blankForm = () => ({ name: '', slug: '', description: '', color: '#0D47A1', is_pinned: false, sort_order: 0, show_in_filter: true })
 const form = ref(blankForm())
 
 // ── API ──────────────────────────────────────────────────────────────────────
@@ -194,7 +241,7 @@ const fieldClass = (err) =>
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 const openAdd  = () => { editId.value = null; form.value = blankForm(); errors.value = {}; modal.value = true }
-const openEdit = (cat) => { editId.value = cat.id; form.value = { name: cat.name, slug: cat.slug, description: cat.description ?? '', color: cat.color ?? '#0D47A1' }; errors.value = {}; modal.value = true }
+const openEdit = (cat) => { editId.value = cat.id; form.value = { name: cat.name, slug: cat.slug, description: cat.description ?? '', color: cat.color ?? '#0D47A1', is_pinned: !!cat.is_pinned, sort_order: cat.sort_order ?? 0, show_in_filter: cat.show_in_filter !== false }; errors.value = {}; modal.value = true }
 const closeModal = () => { modal.value = false }
 
 const saveCategory = async () => {
@@ -215,6 +262,30 @@ const saveCategory = async () => {
     }
   } finally {
     saving.value = false
+  }
+}
+
+const togglePin = async (cat) => {
+  const newVal = !cat.is_pinned
+  cat.is_pinned = newVal
+  try {
+    await axios.put(`/api/categories/${cat.id}`, { is_pinned: newVal })
+    showToast(newVal ? 'Category pinned.' : 'Category unpinned.')
+  } catch {
+    cat.is_pinned = !newVal
+    showToast('Failed to update pin status.')
+  }
+}
+
+const toggleFilter = async (cat) => {
+  const newVal = !cat.show_in_filter
+  cat.show_in_filter = newVal
+  try {
+    await axios.put(`/api/categories/${cat.id}`, { show_in_filter: newVal })
+    showToast(newVal ? 'Shown in Latest News filter.' : 'Hidden from Latest News filter.')
+  } catch {
+    cat.show_in_filter = !newVal
+    showToast('Failed to update filter visibility.')
   }
 }
 

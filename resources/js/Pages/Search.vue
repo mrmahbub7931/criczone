@@ -7,7 +7,7 @@
         <div class="flex items-center gap-3 mb-6">
           <div class="h-8 w-1 bg-primary rounded-full" />
           <h1 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
-            Search <span class="text-primary">Articles</span>
+            {{ t('search.title') }}
           </h1>
         </div>
         <div class="relative">
@@ -16,7 +16,7 @@
             ref="inputRef"
             v-model="query"
             type="search"
-            placeholder="Search by title, content…"
+            :placeholder="t('nav.searchPlaceholder')"
             class="w-full pl-11 pr-12 py-3.5 text-base border-2 border-gray-200 focus:border-primary rounded-xl outline-none transition-colors bg-white shadow-sm"
             @input="onInput"
             @keydown.escape="query = ''; results = []"
@@ -73,14 +73,14 @@
       <!-- No results -->
       <div v-else-if="searched && !results.length" class="text-center py-16 bg-white rounded-xl shadow-sm">
         <SearchIcon :size="40" class="text-gray-200 mx-auto mb-3" />
-        <p class="font-bold text-gray-600 mb-1">No results for "{{ lastQuery }}"</p>
+        <p class="font-bold text-gray-600 mb-1">{{ t('search.noResults') }}</p>
         <p class="text-sm text-gray-400">Try different keywords or check your spelling.</p>
       </div>
 
       <!-- Initial state -->
       <div v-else-if="!query" class="text-center py-16 text-gray-400">
         <SearchIcon :size="40" class="mx-auto mb-3 opacity-30" />
-        <p class="text-sm">Start typing to search articles…</p>
+        <p class="text-sm">{{ t('search.typeToSearch') }}</p>
       </div>
 
     </div>
@@ -92,6 +92,9 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { Search as SearchIcon, X, Newspaper } from 'lucide-vue-next'
+import { useLocale } from '@/composables/useLocale.js'
+
+const { locale, t } = useLocale()
 
 const query     = ref('')
 const results   = ref([])
@@ -103,7 +106,7 @@ const inputRef  = ref(null)
 let debounceTimer = null
 
 const formatDate = (d) => d
-  ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  ? new Date(d).toLocaleDateString(locale.value === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : ''
 
 const doSearch = async (q) => {
@@ -111,7 +114,7 @@ const doSearch = async (q) => {
   searching.value = true
   searched.value  = false
   try {
-    const { data } = await axios.get('/api/search', { params: { q } })
+    const { data } = await axios.get('/api/search', { params: { q, lang: locale.value } })
     results.value = data.data ?? []
     lastQuery.value = q
     searched.value = true

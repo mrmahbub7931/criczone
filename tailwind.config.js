@@ -7,6 +7,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        bangla: ["'Bornomala'", 'sans-serif'],
+      },
       colors: {
         primary: {
           DEFAULT: '#0D47A1',

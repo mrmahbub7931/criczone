@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\LiveScoreController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MenuItemController;
@@ -27,6 +28,7 @@ Route::get('articles/latest',            [ArticleController::class, 'latest']);
 Route::get('articles/trending',          [ArticleController::class, 'trending']);
 Route::get('articles/most-read-week',    [ArticleController::class, 'mostReadWeek']);
 Route::get('articles/videos',            [ArticleController::class, 'videos']);
+Route::get('articles/photo-of-day',      [ArticleController::class, 'photoOfDay']);
 Route::get('articles/{slug}/related',    [ArticleController::class, 'related']);
 Route::get('articles/{slug}',            [ArticleController::class, 'showBySlug']);
 Route::get('poll/active',                [PollController::class,   'active']);
@@ -36,6 +38,8 @@ Route::get('categories/{slug}/articles',[CategoryController::class, 'categoryArt
 Route::get('live-scores',               [LiveScoreController::class, 'publicList']);
 Route::get('search',                    [ArticleController::class, 'search']);
 Route::post('newsletter/subscribe',     [NewsletterController::class, 'subscribe']);
+Route::get('tags',                      [TagController::class, 'index']);
+Route::get('tags/{slug}/articles',      [TagController::class, 'articles']);
 Route::get('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe']);
 
 Route::middleware('auth')->group(function () {
@@ -66,6 +70,13 @@ Route::middleware('auth')->group(function () {
     // ── Articles (admin + editor) ──────────────────────────────────────────
     Route::middleware('role:admin,editor')->group(function () {
         Route::apiResource('articles', ArticleController::class)->except('show');
+    });
+
+    // ── Tags CRUD (admin only) ─────────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::post  ('tags',       [TagController::class, 'store']);
+        Route::put   ('tags/{tag}', [TagController::class, 'update']);
+        Route::delete('tags/{tag}', [TagController::class, 'destroy']);
     });
 
     // ── Categories (admin + editor) ────────────────────────────────────────

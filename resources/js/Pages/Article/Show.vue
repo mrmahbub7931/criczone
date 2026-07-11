@@ -2,6 +2,7 @@
   <Head v-if="article">
     <title>{{ article.title }} – CricZone</title>
     <meta name="description" :content="article.excerpt || article.title" />
+    <meta v-if="article.tags?.length" name="keywords" :content="article.tags.map(t => t.name).join(', ')" />
     <meta property="og:title" :content="article.title" />
     <meta property="og:description" :content="article.excerpt || article.title" />
     <meta v-if="article.featured_image" property="og:image" :content="article.featured_image" />
@@ -25,10 +26,10 @@
       <!-- 404 state -->
       <div v-else-if="notFound" class="text-center py-24">
         <p class="text-6xl font-black text-gray-200 mb-4">404</p>
-        <p class="text-xl font-bold text-gray-700 mb-2">Article Not Found</p>
+        <p class="text-xl font-bold text-gray-700 mb-2">{{ t('article.notFound') }}</p>
         <p class="text-gray-400 text-sm mb-8">The article you're looking for doesn't exist or has been removed.</p>
         <a href="/" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-primary-dark transition-colors">
-          ← Back to Home
+          ← {{ t('article.backToHome') }}
         </a>
       </div>
 
@@ -48,16 +49,19 @@
           <span class="text-gray-600 line-clamp-1">{{ article.title }}</span>
         </nav>
 
-        <!-- Category badge -->
-        <div class="mb-4">
+        <!-- Category + language badges -->
+        <div class="mb-4 flex items-center gap-2 flex-wrap">
           <span
             class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-white"
             :style="{ backgroundColor: article.category?.color || '#0D47A1' }"
           >{{ article.category?.name || 'Cricket' }}</span>
+          <span v-if="article.language"
+            :class="['inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border', article.language === 'en' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-orange-50 text-orange-700 border-orange-200']"
+          >{{ t(`article.lang.${article.language}`) }}</span>
         </div>
 
         <!-- Title -->
-        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-5">
+        <h1 :class="['text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-5', isBangla ? 'font-bangla' : '']">
           {{ article.title }}
         </h1>
 
@@ -73,7 +77,7 @@
           </span>
           <span class="flex items-center gap-1.5">
             <Eye :size="15" class="text-gray-400" />
-            {{ article.views.toLocaleString() }} views
+            {{ article.views.toLocaleString() }} {{ t('article.views') }}
           </span>
           <span class="flex items-center gap-1.5">
             <Clock :size="15" class="text-gray-400" />
@@ -104,19 +108,20 @@
         </div>
 
         <!-- Excerpt -->
-        <p v-if="article.excerpt" class="text-lg text-gray-600 leading-relaxed mb-8 font-medium border-l-4 border-secondary pl-5 italic">
+        <p v-if="article.excerpt"
+          :class="['text-lg text-gray-600 mb-8 font-medium border-l-4 border-secondary pl-5', isBangla ? 'excerpt-bangla not-italic' : 'leading-relaxed italic']">
           {{ article.excerpt }}
         </p>
 
         <!-- Content -->
         <div
-          class="prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-blockquote:border-secondary prose-blockquote:text-gray-600"
+          :class="['prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-blockquote:border-secondary prose-blockquote:text-gray-600 article-content', isBangla ? 'prose-bangla' : '']"
           v-html="article.content"
         />
 
         <!-- ── Share Buttons ──────────────────────────────────────────────── -->
         <div class="mt-10 pt-6 border-t border-gray-100">
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Share this article</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{{ t('article.share') }}</p>
           <div class="flex flex-wrap items-center gap-2">
             <!-- Facebook -->
             <a
@@ -160,13 +165,29 @@
           </div>
         </div>
 
+        <!-- Tags -->
+        <div v-if="article.tags?.length" class="mt-8 pt-6 border-t border-gray-100">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Tags</p>
+          <div class="flex flex-wrap gap-2">
+            <a
+              v-for="tag in article.tags"
+              :key="tag.id"
+              :href="`/tag/${tag.slug}`"
+              class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary hover:text-white transition-colors"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+              {{ tag.name }}
+            </a>
+          </div>
+        </div>
+
         <!-- Author card -->
         <div class="mt-10 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
           <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             <User :size="26" class="text-primary" />
           </div>
           <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Written by</p>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">{{ t('article.author') }}</p>
             <p class="font-bold text-gray-900 text-base">{{ article.author?.name || 'Staff Writer' }}</p>
             <p class="text-sm text-gray-500">CricZone Editorial Team</p>
           </div>
@@ -179,7 +200,7 @@
             class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
           >
             <ChevronLeft :size="16" />
-            Back to Latest News
+            {{ t('article.backToHome') }}
           </a>
         </div>
 
@@ -190,7 +211,7 @@
         <div class="flex items-center gap-3 mb-6">
           <div class="h-6 w-1 bg-secondary rounded-full" />
           <h2 class="text-xl font-black text-gray-900 uppercase tracking-tight">
-            You May Also <span class="text-secondary">Like</span>
+            {{ t('article.relatedNews') }}
           </h2>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -236,6 +257,9 @@ import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
 import { User, Calendar, Eye, Clock, ChevronLeft } from 'lucide-vue-next'
+import { useLocale } from '@/composables/useLocale.js'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ slug: { type: String, required: true } })
 
@@ -249,7 +273,8 @@ const articleUrl = computed(() => window.location.href)
 
 const formattedDate = computed(() => {
   if (!article.value?.published_at) return ''
-  return new Date(article.value.published_at).toLocaleDateString('en-US', {
+  const loc = article.value.language === 'bn' ? 'bn-BD' : 'en-US'
+  return new Date(article.value.published_at).toLocaleDateString(loc, {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 })
@@ -258,6 +283,13 @@ const readTime = computed(() => {
   if (!article.value?.content) return '3 min read'
   const words = article.value.content.replace(/<[^>]+>/g, '').split(/\s+/).length
   return `${Math.max(1, Math.ceil(words / 200))} min read`
+})
+
+// Detect if the article is primarily in Bengali (Unicode range U+0980–U+09FF)
+const isBangla = computed(() => {
+  const text = (article.value?.title ?? '') + (article.value?.excerpt ?? '')
+  const banglaChars = (text.match(/[ঀ-৿]/g) ?? []).length
+  return banglaChars > text.length * 0.2   // >20% Bengali chars = Bengali article
 })
 
 const formatDate = (d) => d
@@ -312,7 +344,10 @@ const processSocialEmbeds = () => {
   })
 }
 
-watch(article, () => processSocialEmbeds())
+// Run AFTER both article is set AND loading is false (so v-html is in the DOM)
+watch([article, loading], ([a, l]) => {
+  if (a && !l) processSocialEmbeds()
+}, { flush: 'post' })
 
 const copyLink = async () => {
   try {
@@ -340,7 +375,6 @@ onMounted(async () => {
     ])
     if (artRes.status === 'fulfilled') {
       article.value = artRes.value.data
-      processSocialEmbeds()
     } else {
       notFound.value = true
     }

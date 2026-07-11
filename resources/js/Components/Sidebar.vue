@@ -1,12 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { TrendingUp, Flame, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useSettings } from '@/composables/useSettings.js'
 import { useMenu }     from '@/composables/useMenu.js'
+import { useLocale }   from '@/composables/useLocale.js'
 import PollWidget      from '@/Components/PollWidget.vue'
 
 const { get: setting } = useSettings()
+const { locale, t }    = useLocale()
 const newsletterEnabled = computed(() => setting('newsletter', 'newsletter_enabled', '1') === '1')
 
 // ── Most Read This Week ───────────────────────────────────────────────────────
@@ -29,16 +31,21 @@ const quickLinks = computed(() => quickMenuItems.value.length ? quickMenuItems.v
 const trending        = ref([])
 const trendingLoading = ref(true)
 
-onMounted(async () => {
+const fetchSidebarData = async () => {
+  trendingLoading.value = true
+  mostReadLoading.value = true
   const [trendRes, mostRes] = await Promise.allSettled([
-    axios.get('/api/articles/trending'),
-    axios.get('/api/articles/most-read-week'),
+    axios.get('/api/articles/trending', { params: { lang: locale.value } }),
+    axios.get('/api/articles/most-read-week', { params: { lang: locale.value } }),
   ])
   if (trendRes.status === 'fulfilled') trending.value  = trendRes.value.data ?? []
   if (mostRes.status  === 'fulfilled') mostRead.value  = mostRes.value.data  ?? []
   trendingLoading.value = false
   mostReadLoading.value = false
-})
+}
+
+onMounted(fetchSidebarData)
+watch(locale, fetchSidebarData)
 
 const formatViews = (n) => {
   if (!n && n !== 0) return '0'
@@ -86,7 +93,7 @@ const subscribe = async () => {
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
       <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
         <TrendingUp class="w-4 h-4 text-secondary" />
-        <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider">Trending Now</h3>
+        <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider">{{ t('home.trending') }}</h3>
       </div>
 
       <!-- Skeleton -->
@@ -156,7 +163,7 @@ const subscribe = async () => {
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
       <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
         <Flame class="w-4 h-4 text-orange-500" />
-        <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider">Most Read</h3>
+        <h3 class="font-bold text-gray-900 text-sm uppercase tracking-wider">{{ t('home.mostRead') }}</h3>
         <span class="ml-auto text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">This Week</span>
       </div>
       <!-- Skeleton -->

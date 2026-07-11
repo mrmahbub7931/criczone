@@ -673,22 +673,24 @@
             <h2 class="font-bold text-gray-900 mb-4">{{ pollEdit ? 'Edit Poll' : 'Create New Poll' }}</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Question</label>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Question *</label>
                 <input v-model="pollForm.question" type="text" placeholder="Who will win IPL 2026?"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                  :class="['w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]', pollErrors.question ? 'border-red-400 bg-red-50' : 'border-gray-200']" />
+                <p v-if="pollErrors.question" class="text-xs text-red-500 mt-1">{{ pollErrors.question }}</p>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-2">Options (2–6)</label>
+                <label class="block text-xs font-semibold text-gray-600 mb-2">Options (2–6) *</label>
                 <div class="space-y-2">
                   <div v-for="(_, i) in pollForm.options" :key="i" class="flex items-center gap-2">
                     <input v-model="pollForm.options[i]" type="text" :placeholder="`Option ${i + 1}`"
-                      class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+                      :class="['flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]', pollErrors.options ? 'border-red-400 bg-red-50' : 'border-gray-200']" />
                     <button v-if="pollForm.options.length > 2" @click="removeOption(i)"
                       class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
                 </div>
+                <p v-if="pollErrors.options" class="text-xs text-red-500 mt-1">{{ pollErrors.options }}</p>
                 <button v-if="pollForm.options.length < 6" @click="addOption"
                   class="mt-2 text-xs font-semibold text-[#0D47A1] hover:underline">+ Add option</button>
               </div>
@@ -705,8 +707,9 @@
                   </label>
                 </div>
               </div>
+              <p v-if="pollErrors.general" class="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{{ pollErrors.general }}</p>
               <div class="flex items-center gap-2 pt-1">
-                <button @click="savePoll" :disabled="pollSaving || !pollForm.question"
+                <button @click="savePoll" :disabled="pollSaving"
                   class="save-btn">
                   <svg v-if="pollSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                   {{ pollSaving ? 'Saving…' : (pollEdit ? 'Update Poll' : 'Create Poll') }}
@@ -1159,10 +1162,11 @@ const saveProfile = async () => {
 const polls       = ref([])
 const pollsLoading = ref(false)
 const pollForm    = reactive({
-  id: null, question: '', options: ['', ''], is_active: false, ends_at: '',
+  id: null, question: '', options: ['', ''], is_active: true, ends_at: '',
 })
-const pollSaving  = ref(false)
-const pollEdit    = ref(false)
+const pollSaving   = ref(false)
+const pollEdit     = ref(false)
+const pollErrors   = ref({})
 
 const loadPolls = async () => {
   pollsLoading.value = true
@@ -1172,8 +1176,8 @@ const loadPolls = async () => {
 
 const resetPollForm = () => {
   pollForm.id = null; pollForm.question = ''; pollForm.options = ['', '']
-  pollForm.is_active = false; pollForm.ends_at = ''
-  pollEdit.value = false
+  pollForm.is_active = true; pollForm.ends_at = ''
+  pollEdit.value = false; pollErrors.value = {}
 }
 
 const editPoll = (p) => {
@@ -1183,18 +1187,23 @@ const editPoll = (p) => {
   pollForm.is_active = p.is_active
   pollForm.ends_at   = p.ends_at ? p.ends_at.substring(0, 16) : ''
   pollEdit.value     = true
+  pollErrors.value   = {}
 }
 
 const addOption    = () => { if (pollForm.options.length < 6) pollForm.options.push('') }
 const removeOption = (i) => { if (pollForm.options.length > 2) pollForm.options.splice(i, 1) }
 
 const savePoll = async () => {
-  if (!pollForm.question || pollForm.options.filter(o => o.trim()).length < 2) return
+  pollErrors.value = {}
+  const filledOptions = pollForm.options.filter(o => o.trim())
+  if (!pollForm.question.trim()) { pollErrors.value.question = 'Question is required.'; return }
+  if (filledOptions.length < 2)  { pollErrors.value.options  = 'At least 2 options are required.'; return }
+
   pollSaving.value = true
   try {
     const payload = {
-      question: pollForm.question,
-      options:  pollForm.options.filter(o => o.trim()),
+      question:  pollForm.question.trim(),
+      options:   filledOptions,
       is_active: pollForm.is_active,
       ends_at:   pollForm.ends_at || null,
     }
@@ -1209,7 +1218,13 @@ const savePoll = async () => {
     resetPollForm()
     showToast('Poll saved.')
   } catch (err) {
-    showToast(err.response?.data?.message ?? 'Failed to save poll.', true)
+    const data = err.response?.data
+    if (data?.errors) {
+      if (data.errors.question) pollErrors.value.question = data.errors.question[0]
+      if (data.errors.options)  pollErrors.value.options  = data.errors.options[0]
+    } else {
+      pollErrors.value.general = data?.message ?? 'Failed to save poll.'
+    }
   } finally {
     pollSaving.value = false
   }

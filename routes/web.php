@@ -16,10 +16,13 @@ Route::get('/pages/{slug}', fn (string $slug) => Inertia::render('Pages/Show', [
 
 Route::get('/article/{slug}', fn (string $slug) => Inertia::render('Article/Show', ['slug' => $slug]))->name('article.show');
 Route::get('/category/{slug}', fn (string $slug) => Inertia::render('Category/Show', ['slug' => $slug]))->name('category');
+Route::get('/tag/{slug}',      fn (string $slug) => Inertia::render('Tag/Show', ['slug' => $slug]))->name('tag');
 Route::get('/live-scores',     fn () => Inertia::render('LiveScores'))->name('live-scores');
 Route::get('/videos',          fn () => Inertia::render('Videos'))->name('videos');
 Route::get('/newsletter/unsubscribe/{token}', [\App\Http\Controllers\NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 Route::get('/search',          fn () => Inertia::render('Search'))->name('search');
+Route::get('/categories',      fn () => Inertia::render('Categories/Index'))->name('categories');
+Route::get('/photo-of-day',    fn () => Inertia::render('PhotoOfDay/Index'))->name('photo-of-day');
 
 // Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
@@ -39,6 +42,7 @@ Route::prefix('dashboard')->middleware(['auth', 'role:admin,editor'])->group(fun
 
     // Admin only
     Route::middleware('role:admin')->group(function () {
+        Route::get('/tags',  fn () => Inertia::render('Dashboard/Tags/Index'))->name('dashboard.tags');
         Route::get('/users', fn () => Inertia::render('Dashboard/Users/Index'))->name('dashboard.users');
         Route::get('/roles', fn () => Inertia::render('Dashboard/Roles/Index'))->name('dashboard.roles');
     });

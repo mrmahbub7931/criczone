@@ -1,3 +1,112 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Bornomala — self-hosted Bangla font ──────────────────────────────────── */
+@font-face {
+  font-family: 'Bornomala';
+  src: url('/fonts/Bornomala-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bornomala';
+  src: url('/fonts/Bornomala-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Bengali glyph clipping fix ───────────────────────────────────────────────
+   Bengali numerals (১ ২ ৩…) and letters have strokes that extend slightly
+   beyond their typographic advance width (glyph overhang). Two things cause
+   clipping:
+     1. overflow:hidden on a parent container
+     2. zero letter-spacing so the next glyph's box covers the hook/stroke
+
+   Fixes:
+     • Never use overflow:hidden on text-containing wrappers
+     • Add letter-spacing:0.015em so each Bengali glyph gets a tiny right margin
+     • Set line-height≥1.9 so vertical strokes don't clip on top/bottom
+────────────────────────────────────────────────────────────────────────────── */
+textarea,
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="url"] {
+  line-height: 1.9;
+  overflow: visible;
+  letter-spacing: 0.015em;
+}
+
+/* Article body — never clip glyph overhangs */
+.article-content {
+  overflow: visible;
+  letter-spacing: 0.015em;
+}
+
+.article-content p,
+.article-content li,
+.article-content h1,
+.article-content h2,
+.article-content h3,
+.article-content h4 {
+  overflow: visible;
+  line-height: 2;
+}
+
+/* ── Bangla / Bengali font ─────────────────────────────────────────────────────
+   Bornomala — self-hosted Bengali font.
+   unicode-range activates it automatically for Bengali characters;
+   English/Latin text keeps the system font.
+────────────────────────────────────────────────────────────────────────────── */
+body {
+  font-family:
+    'Bornomala',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+}
+
+/* ── Explicit utility: use on any fully-Bengali section ── */
+.font-bangla {
+  font-family: 'Bornomala', sans-serif !important;
+  line-height: 1.9;
+}
+
+/* ── Bengali article body — comfortable long-form reading ── */
+.prose-bangla {
+  font-family: 'Bornomala', sans-serif;
+  font-size: 1.0625rem;    /* 17px */
+  line-height: 2.1;
+  word-spacing: 0.04em;
+  color: #1f2937;
+}
+
+.prose-bangla h1,
+.prose-bangla h2,
+.prose-bangla h3,
+.prose-bangla h4 {
+  font-family: 'Bornomala', sans-serif;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #111827;
+}
+
+.prose-bangla p { margin-bottom: 1.35em; }
+
+/* Bangla excerpt / pull-quote style */
+.excerpt-bangla {
+  font-family: 'Bornomala', sans-serif;
+  font-size: 1.125rem;
+  line-height: 2;
+  font-weight: 500;
+}

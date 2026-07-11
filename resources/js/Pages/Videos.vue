@@ -12,7 +12,7 @@
         <div class="h-8 w-1 bg-secondary rounded-full" />
         <div>
           <h1 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
-            Video <span class="text-secondary">News</span>
+            {{ t('videos.title') }}
           </h1>
           <p class="text-sm text-gray-400 mt-0.5">Latest cricket videos, highlights &amp; interviews</p>
         </div>
@@ -33,7 +33,7 @@
       <!-- Empty state -->
       <div v-else-if="!loading && videos.length === 0" class="text-center py-24 text-gray-400">
         <div class="text-5xl mb-4">🎬</div>
-        <p class="font-bold text-gray-600 text-lg mb-1">No videos yet</p>
+        <p class="font-bold text-gray-600 text-lg mb-1">{{ t('videos.noVideos') }}</p>
         <p class="text-sm">Check back soon for video news and highlights.</p>
       </div>
 
@@ -104,7 +104,7 @@
           class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-dark disabled:opacity-50 text-white text-sm font-semibold rounded-full transition-colors"
         >
           <span v-if="loadingMore" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          {{ loadingMore ? 'Loading...' : 'Load More Videos' }}
+          {{ loadingMore ? t('common.loading') : t('videos.loadMore') }}
         </button>
       </div>
 
@@ -113,10 +113,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
+import { useLocale } from '@/composables/useLocale.js'
+
+const { locale, t } = useLocale()
 
 const videos     = ref([])
 const loading    = ref(true)
@@ -125,11 +128,11 @@ const page       = ref(1)
 const hasMore    = ref(false)
 
 const formatDate = (d) => d
-  ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  ? new Date(d).toLocaleDateString(locale.value === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : ''
 
 const fetchVideos = async (pageNum = 1) => {
-  const { data } = await axios.get('/api/articles/videos', { params: { page: pageNum, per_page: 12 } })
+  const { data } = await axios.get('/api/articles/videos', { params: { page: pageNum, per_page: 12, lang: locale.value } })
   return data
 }
 
@@ -154,4 +157,16 @@ const loadMore = async () => {
     loadingMore.value = false
   }
 }
+
+watch(locale, async () => {
+  loading.value = true
+  page.value = 1
+  try {
+    const data = await fetchVideos(1)
+    videos.value = data.data ?? []
+    hasMore.value = (data.current_page ?? 1) < (data.last_page ?? 1)
+  } finally {
+    loading.value = false
+  }
+})
 </script>

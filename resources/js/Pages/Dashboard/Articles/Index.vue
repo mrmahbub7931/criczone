@@ -67,7 +67,10 @@
               <td class="px-4 py-3.5 text-gray-500 text-xs hidden lg:table-cell">{{ a.author?.name ?? '—' }}</td>
               <td class="px-4 py-3.5 text-gray-500 text-xs hidden lg:table-cell">{{ a.views?.toLocaleString() }}</td>
               <td class="px-4 py-3.5">
-                <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full', a.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700']">{{ a.status }}</span>
+                <div class="flex flex-col gap-1">
+                  <span :class="['text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit', a.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700']">{{ a.status }}</span>
+                  <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full w-fit', a.language === 'en' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700']">{{ a.language === 'en' ? 'EN' : 'বাং' }}</span>
+                </div>
               </td>
               <td class="px-4 py-3.5">
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
@@ -138,6 +141,15 @@
               </select>
               <Err :e="errors.status" />
             </div>
+            <!-- Language -->
+            <div>
+              <label class="label">Language *</label>
+              <select v-model="form.language" :class="field(errors.language)">
+                <option value="bn">বাংলা (Bangla)</option>
+                <option value="en">English</option>
+              </select>
+              <Err :e="errors.language" />
+            </div>
             <!-- Featured Image upload -->
             <div class="sm:col-span-2">
               <label class="label">Featured Image</label>
@@ -184,10 +196,61 @@
               </div>
               <p v-else-if="form.video_url && !videoEmbedPreview" class="text-xs text-amber-500 mt-1">URL not recognised — supported: YouTube, Vimeo, Dailymotion</p>
             </div>
-            <!-- Is Featured -->
-            <div class="flex items-center gap-2">
-              <input v-model="form.is_featured" type="checkbox" id="is_featured" class="w-4 h-4 accent-[#0D47A1] rounded" />
-              <label for="is_featured" class="text-sm text-gray-700 cursor-pointer">Mark as featured</label>
+            <!-- Tags -->
+            <div class="sm:col-span-2">
+              <label class="label">Tags <span class="font-normal text-gray-400">(Enter or comma to add)</span></label>
+              <!-- Selected pills -->
+              <div v-if="form.tags.length" class="flex flex-wrap gap-1.5 mb-2">
+                <span
+                  v-for="(tag, i) in form.tags"
+                  :key="i"
+                  class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700"
+                >
+                  {{ tag }}
+                  <button type="button" @click="removeTag(i)" class="ml-0.5 text-blue-400 hover:text-blue-700 transition-colors leading-none font-bold">&times;</button>
+                </span>
+              </div>
+              <!-- Input + dropdown suggestions -->
+              <div class="relative">
+                <input
+                  v-model="tagInput"
+                  @keydown="onTagKeydown"
+                  @input="fetchTagSuggestions"
+                  @blur="hideSuggestions"
+                  @focus="fetchTagSuggestions"
+                  type="text"
+                  :class="field(null)"
+                  placeholder="e.g. IPL, Virat Kohli, T20…"
+                />
+                <ul
+                  v-if="tagSuggestions.length"
+                  class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto"
+                >
+                  <li
+                    v-for="s in tagSuggestions"
+                    :key="s.id"
+                    @mousedown.prevent="selectSuggestion(s.name)"
+                    class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+                  >
+                    <span>{{ s.name }}</span>
+                    <span class="text-xs text-gray-400">{{ s.articles_count }} articles</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Flags row -->
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="flex items-center gap-2">
+                <input v-model="form.is_featured" type="checkbox" id="is_featured" class="w-4 h-4 accent-[#0D47A1] rounded" />
+                <label for="is_featured" class="text-sm text-gray-700 cursor-pointer">Mark as featured</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <input v-model="form.is_photo_day" type="checkbox" id="is_photo_day" class="w-4 h-4 accent-amber-500 rounded" />
+                <label for="is_photo_day" class="text-sm text-gray-700 cursor-pointer flex items-center gap-1">
+                  <span>📸</span> দিনের সেরা ছবি
+                </label>
+              </div>
             </div>
           </div>
 
@@ -249,8 +312,54 @@ const errors       = ref({})
 const deleteTarget = ref(null)
 const toast        = ref('')
 
-const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', status: 'draft', is_featured: false })
+const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', status: 'draft', language: 'bn', is_featured: false, is_photo_day: false, tags: [] })
 const form = ref(blankForm())
+
+// ── Tag input ─────────────────────────────────────────────────────────────
+const tagInput       = ref('')
+const tagSuggestions = ref([])
+let suggestTimer     = null
+
+const addTag = (name) => {
+  const clean = name.trim().replace(/,+$/, '').trim()
+  if (!clean || form.value.tags.includes(clean)) return
+  form.value.tags.push(clean)
+}
+
+const addTagFromInput = () => {
+  addTag(tagInput.value)
+  tagInput.value = ''
+  tagSuggestions.value = []
+}
+
+const removeTag = (i) => form.value.tags.splice(i, 1)
+
+const selectSuggestion = (name) => {
+  addTag(name)
+  tagInput.value = ''
+  tagSuggestions.value = []
+}
+
+const hideSuggestions = () => setTimeout(() => { tagSuggestions.value = [] }, 200)
+
+const onTagKeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    addTagFromInput()
+  } else if (e.key === 'Backspace' && !tagInput.value && form.value.tags.length) {
+    form.value.tags.pop()
+  }
+}
+
+const fetchTagSuggestions = () => {
+  clearTimeout(suggestTimer)
+  const q = tagInput.value.trim()
+  if (!q) { tagSuggestions.value = []; return }
+  suggestTimer = setTimeout(async () => {
+    const { data } = await axios.get('/api/tags', { params: { search: q } })
+    tagSuggestions.value = data.filter(t => !form.value.tags.includes(t.name))
+  }, 200)
+}
 
 // ── Fetch ─────────────────────────────────────────────────────────────────
 const fetchArticles = async () => {
@@ -327,16 +436,18 @@ const uploadImage = async (e) => {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────
-const openCreate = () => { editId.value = null; form.value = blankForm(); errors.value = {}; modal.value = true }
+const openCreate = () => { editId.value = null; form.value = blankForm(); tagInput.value = ''; tagSuggestions.value = []; errors.value = {}; modal.value = true }
 
 const openEdit = (a) => {
   editId.value = a.id
-  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', video_url: a.video_url ?? '', category_id: a.category_id, status: a.status, is_featured: a.is_featured }
+  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', video_url: a.video_url ?? '', category_id: a.category_id, status: a.status, language: a.language ?? 'bn', is_featured: a.is_featured, is_photo_day: a.is_photo_day ?? false, tags: (a.tags ?? []).map(t => t.name) }
+  tagInput.value = ''
+  tagSuggestions.value = []
   errors.value = {}
   modal.value  = true
 }
 
-const closeModal = () => { modal.value = false }
+const closeModal = () => { modal.value = false; tagInput.value = ''; tagSuggestions.value = [] }
 
 const save = async () => {
   saving.value = true; errors.value = {}
