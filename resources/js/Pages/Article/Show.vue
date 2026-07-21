@@ -51,10 +51,18 @@
 
         <!-- Category + language badges -->
         <div class="mb-4 flex items-center gap-2 flex-wrap">
-          <span
+          <a
+            v-for="cat in visibleCategories"
+            :key="cat.id"
+            :href="`/category/${cat.slug ?? ''}`"
+            class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-white hover:opacity-80 transition-opacity"
+            :style="{ backgroundColor: cat.color || '#0D47A1' }"
+          >{{ cat.name }}</a>
+          <!-- Fallback if no categories loaded yet -->
+          <span v-if="!visibleCategories.length && article.category"
             class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-white"
             :style="{ backgroundColor: article.category?.color || '#0D47A1' }"
-          >{{ article.category?.name || 'Cricket' }}</span>
+          >{{ article.category.name }}</span>
           <span v-if="article.language"
             :class="['inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border', article.language === 'en' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-orange-50 text-orange-700 border-orange-200']"
           >{{ t(`article.lang.${article.language}`) }}</span>
@@ -67,10 +75,6 @@
 
         <!-- Meta row -->
         <div class="flex flex-wrap items-center gap-5 text-sm text-gray-500 mb-8 pb-6 border-b border-gray-100">
-          <span class="flex items-center gap-1.5">
-            <User :size="15" class="text-gray-400" />
-            <span class="font-medium text-gray-700">{{ article.author?.name || 'Staff Writer' }}</span>
-          </span>
           <span class="flex items-center gap-1.5">
             <Calendar :size="15" class="text-gray-400" />
             {{ formattedDate }}
@@ -181,17 +185,6 @@
           </div>
         </div>
 
-        <!-- Author card -->
-        <div class="mt-10 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
-          <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <User :size="26" class="text-primary" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">{{ t('article.author') }}</p>
-            <p class="font-bold text-gray-900 text-base">{{ article.author?.name || 'Staff Writer' }}</p>
-            <p class="text-sm text-gray-500">CricZone Editorial Team</p>
-          </div>
-        </div>
 
         <!-- Back link -->
         <div class="mt-8">
@@ -256,10 +249,12 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
-import { User, Calendar, Eye, Clock, ChevronLeft } from 'lucide-vue-next'
-import { useLocale } from '@/composables/useLocale.js'
+import { Calendar, Eye, Clock, ChevronLeft } from 'lucide-vue-next'
+import { useLocale }   from '@/composables/useLocale.js'
+import { useSettings } from '@/composables/useSettings.js'
 
 const { locale, t } = useLocale()
+const { get: setting } = useSettings()
 
 const props = defineProps({ slug: { type: String, required: true } })
 
@@ -269,7 +264,20 @@ const notFound = ref(false)
 const related  = ref([])
 const copied   = ref(false)
 
-const articleUrl = computed(() => window.location.href)
+const shortUrl = computed(() =>
+  article.value?.short_url?.code
+    ? `${window.location.origin}/s/${article.value.short_url.code}`
+    : window.location.href
+)
+
+const articleUrl = computed(() => shortUrl.value)
+
+// Categories to show publicly — excludes the auto-add default category
+const visibleCategories = computed(() => {
+  const defaultId = parseInt(setting('homepage', 'default_category_id', '0'))
+  const cats = article.value?.categories ?? []
+  return defaultId ? cats.filter(c => c.id !== defaultId) : cats
+})
 
 const formattedDate = computed(() => {
   if (!article.value?.published_at) return ''

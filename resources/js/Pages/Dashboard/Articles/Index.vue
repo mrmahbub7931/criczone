@@ -123,14 +123,55 @@
               <RichEditor v-model="form.content" :has-error="!!errors.content" />
               <Err :e="errors.content" />
             </div>
-            <!-- Category -->
+            <!-- Category (primary) -->
             <div>
-              <label class="label">Category *</label>
+              <label class="label">Primary Category *</label>
               <select v-model="form.category_id" :class="field(errors.category_id)">
                 <option value="">Select category…</option>
                 <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
               <Err :e="errors.category_id" />
+            </div>
+            <!-- Extra categories -->
+            <div>
+              <label class="label">Additional Categories</label>
+              <!-- Selected pills -->
+              <div v-if="selectedExtraCategories.length" class="flex flex-wrap gap-1.5 mb-2">
+                <span
+                  v-for="c in selectedExtraCategories"
+                  :key="c.id"
+                  class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700"
+                >
+                  {{ c.name }}
+                  <button type="button" @click="removeExtraCategory(c.id)" class="ml-0.5 text-blue-400 hover:text-blue-700 transition-colors leading-none font-bold">&times;</button>
+                </span>
+              </div>
+              <!-- Search input + dropdown -->
+              <div class="relative">
+                <input
+                  v-model="catInput"
+                  @input="fetchCatSuggestions"
+                  @blur="hideCatSuggestions"
+                  @focus="fetchCatSuggestions"
+                  type="text"
+                  :class="field(null)"
+                  placeholder="Search and select categories…"
+                />
+                <ul
+                  v-if="catSuggestions.length"
+                  class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto"
+                >
+                  <li
+                    v-for="c in catSuggestions"
+                    :key="c.id"
+                    @mousedown.prevent="selectCatSuggestion(c)"
+                    class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+                  >
+                    <span>{{ c.name }}</span>
+                  </li>
+                </ul>
+              </div>
+              <p class="text-[11px] text-gray-400 mt-1">Primary category is always included automatically.</p>
             </div>
             <!-- Status -->
             <div>
@@ -312,7 +353,7 @@ const errors       = ref({})
 const deleteTarget = ref(null)
 const toast        = ref('')
 
-const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', status: 'draft', language: 'bn', is_featured: false, is_photo_day: false, tags: [] })
+const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', category_ids: [], status: 'draft', language: 'bn', is_featured: false, is_photo_day: false, tags: [] })
 const form = ref(blankForm())
 
 // ── Tag input ─────────────────────────────────────────────────────────────
@@ -436,18 +477,52 @@ const uploadImage = async (e) => {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────
-const openCreate = () => { editId.value = null; form.value = blankForm(); tagInput.value = ''; tagSuggestions.value = []; errors.value = {}; modal.value = true }
+const openCreate = () => { editId.value = null; form.value = blankForm(); tagInput.value = ''; tagSuggestions.value = []; catInput.value = ''; catSuggestions.value = []; errors.value = {}; modal.value = true }
+
+// ── Extra category search ─────────────────────────────────────────────────
+const catInput       = ref('')
+const catSuggestions = ref([])
+let catSuggestTimer  = null
+
+const selectedExtraCategories = computed(() =>
+  categories.value.filter(c => form.value.category_ids.includes(c.id))
+)
+
+const removeExtraCategory = (id) => {
+  form.value.category_ids = form.value.category_ids.filter(i => i !== id)
+}
+
+const selectCatSuggestion = (cat) => {
+  if (!form.value.category_ids.includes(cat.id)) {
+    form.value.category_ids.push(cat.id)
+  }
+  catInput.value = ''
+  catSuggestions.value = []
+}
+
+const hideCatSuggestions = () => setTimeout(() => { catSuggestions.value = [] }, 200)
+
+const fetchCatSuggestions = () => {
+  clearTimeout(catSuggestTimer)
+  const q = catInput.value.trim().toLowerCase()
+  catSuggestTimer = setTimeout(() => {
+    catSuggestions.value = categories.value.filter(c =>
+      (!q || c.name.toLowerCase().includes(q)) &&
+      !form.value.category_ids.includes(c.id)
+    ).slice(0, 20)
+  }, 150)
+}
 
 const openEdit = (a) => {
   editId.value = a.id
-  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', video_url: a.video_url ?? '', category_id: a.category_id, status: a.status, language: a.language ?? 'bn', is_featured: a.is_featured, is_photo_day: a.is_photo_day ?? false, tags: (a.tags ?? []).map(t => t.name) }
+  form.value   = { title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', content: a.content ?? '', featured_image: a.featured_image ?? '', video_url: a.video_url ?? '', category_id: a.category_id, category_ids: (a.categories ?? []).map(c => c.id), status: a.status, language: a.language ?? 'bn', is_featured: a.is_featured, is_photo_day: a.is_photo_day ?? false, tags: (a.tags ?? []).map(t => t.name) }
   tagInput.value = ''
   tagSuggestions.value = []
   errors.value = {}
   modal.value  = true
 }
 
-const closeModal = () => { modal.value = false; tagInput.value = ''; tagSuggestions.value = [] }
+const closeModal = () => { modal.value = false; tagInput.value = ''; tagSuggestions.value = []; catInput.value = ''; catSuggestions.value = [] }
 
 const save = async () => {
   saving.value = true; errors.value = {}

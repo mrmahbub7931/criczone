@@ -353,6 +353,21 @@
           </div>
 
           <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-1">Default Category (Auto-Add)</h2>
+            <p class="text-xs text-gray-400 mb-4">This category is automatically added to every article. It won't be shown on the article page, but all articles appear in its archive.</p>
+            <select v-model="form.homepage.default_category_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]">
+              <option value="">— None —</option>
+              <option v-for="c in allCategories" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
+            </select>
+            <div class="flex justify-end mt-4">
+              <button @click="save('homepage')" :disabled="saving" class="save-btn">
+                <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                {{ saving ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h2 class="font-bold text-gray-900 mb-4">Breaking News Ticker</h2>
             <div class="flex items-center justify-between py-2 mb-4">
               <div>
@@ -367,10 +382,11 @@
               </button>
             </div>
             <div :class="{ 'opacity-40 pointer-events-none': !isTruthy(form.homepage.breaking_news_enabled) }">
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Ticker Text</label>
-              <input v-model="form.homepage.breaking_news_text" type="text"
-                placeholder="BREAKING: India wins the T20 World Cup…"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1]" />
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Breaking News Items</label>
+              <p class="text-xs text-gray-400 mb-1.5">Write each breaking news on a separate line. They will scroll one after another.</p>
+              <textarea v-model="form.homepage.breaking_news_text" rows="4"
+                placeholder="বাংলাদেশ বনাম ভারত ম্যাচ আজ রাত ৮টায়&#10;সাকিব আল হাসান দলে ফিরছেন&#10;আইপিএল নিলাম শুরু হচ্ছে আগামীকাল"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] resize-none" />
             </div>
           </div>
 
@@ -930,6 +946,7 @@ const form = reactive({
     breaking_news_text: '', articles_layout: 'grid',
     latest_per_page: '6', category_per_page: '9',
     trending_count: '7', most_read_count: '5',
+    default_category_id: '',
   },
   footer: {
     footer_description: '', footer_copyright: '',
@@ -1247,8 +1264,15 @@ const togglePollActive = async (p) => {
 }
 
 // onMounted(fetchSettings)
+const allCategories = ref([])
+const fetchAllCategories = async () => {
+  const { data } = await axios.get('/api/categories', { params: { per_page: 100 } })
+  allCategories.value = data.data ?? data
+}
+
 onMounted(() => {
   fetchSettings()
+  fetchAllCategories()
 })
 </script>
 

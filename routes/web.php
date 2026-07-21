@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ShortUrlController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -9,6 +10,9 @@ Route::get('/maintenance', fn () => response()->view('maintenance'))->name('main
 
 // Developer documentation — admin only
 Route::get('/dev/docs', fn () => Inertia::render('DevDocs'))->middleware(['auth', 'role:admin'])->name('dev.docs');
+
+// Short URL redirect
+Route::get('/s/{code}', [ShortUrlController::class, 'redirect'])->name('short-url');
 
 // Public
 Route::get('/', fn () => Inertia::render('Home'))->name('home');

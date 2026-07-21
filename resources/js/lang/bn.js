@@ -19,6 +19,7 @@ export default {
     searchPlaceholder: 'সংবাদ খুঁজুন...',
     viewAll:     'সব দেখুন',
     more:        'আরও',
+    breaking:    'সদ্য পাওয়া',
     dashboard:   'ড্যাশবোর্ড',
     login:       'লগইন',
     logout:      'লগআউট',

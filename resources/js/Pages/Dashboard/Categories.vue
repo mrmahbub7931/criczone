@@ -110,6 +110,7 @@
               <input v-model="form.slug" type="text" placeholder="category-slug" class="font-mono"
                 :class="fieldClass(errors.slug)" />
               <p v-if="errors.slug" class="text-xs text-red-500 mt-1">{{ errors.slug }}</p>
+              <p v-else class="text-[11px] text-gray-400 mt-1">Auto-generated from name — you can customize it.</p>
             </div>
             <div>
               <label class="block text-xs font-semibold text-gray-600 mb-1">Description</label>
@@ -227,10 +228,29 @@ onMounted(fetchCategories)
 watch([page, search], fetchCategories)
 watch(search, () => { page.value = 1 })
 
+// ── Slug generator ─────────────────────────────────────────────────────────────
+const isBangla = (text) => /[ঀ-৿]/.test(text)
+
+const toSlug = (text) => {
+  if (isBangla(text)) {
+    // Keep Bangla characters, replace spaces/punctuation with hyphens
+    return text.trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^ঀ-৿\-]/g, '')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+  // English: lowercase ASCII
+  return text.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const autoSlug = () => {
   if (!editId.value) {
-    form.value.slug = form.value.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    form.value.slug = toSlug(form.value.name.trim())
   }
 }
 

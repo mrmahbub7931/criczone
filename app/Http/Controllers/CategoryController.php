@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Article;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,9 +28,13 @@ class CategoryController extends Controller
         $default = (int) \App\Models\Setting::where('key', 'category_per_page')->value('value') ?: 9;
         $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
 
-        $articles = $category->articles()
-            ->with(['author:id,name'])
+        // Include articles where this is the primary category OR added via pivot
+        $articles = Article::with(['author:id,name'])
             ->where('status', 'published')
+            ->where(fn ($q) =>
+                $q->where('category_id', $category->id)
+                  ->orWhereHas('categories', fn ($q2) => $q2->where('categories.id', $category->id))
+            )
             ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
             ->orderByDesc('published_at')
             ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id', 'language']);
@@ -57,7 +62,7 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:100'],
-            'slug'        => ['required', 'string', 'max:100', 'unique:categories,slug', 'regex:/^[a-z0-9\-]+$/'],
+            'slug'        => ['required', 'string', 'max:100', 'unique:categories,slug', 'regex:/^[\p{Bengali}a-z0-9][\p{Bengali}a-z0-9\-]*[\p{Bengali}a-z0-9]$|^[\p{Bengali}a-z0-9]$/u'],
             'description' => ['nullable', 'string', 'max:500'],
             'color'       => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_pinned'      => ['sometimes', 'boolean'],
@@ -72,7 +77,7 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name'        => ['sometimes', 'string', 'max:100'],
-            'slug'        => ['sometimes', 'string', 'max:100', Rule::unique('categories')->ignore($category->id), 'regex:/^[a-z0-9\-]+$/'],
+            'slug'        => ['sometimes', 'string', 'max:100', Rule::unique('categories')->ignore($category->id), 'regex:/^[\p{Bengali}a-z0-9][\p{Bengali}a-z0-9\-]*[\p{Bengali}a-z0-9]$|^[\p{Bengali}a-z0-9]$/u'],
             'description' => ['nullable', 'string', 'max:500'],
             'color'       => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_pinned'      => ['sometimes', 'boolean'],

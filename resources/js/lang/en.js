@@ -18,6 +18,7 @@ export default {
     searchPlaceholder: 'Search news...',
     viewAll:     'View All',
     more:        'More',
+    breaking:    'Breaking',
     dashboard:   'Dashboard',
     login:       'Login',
     logout:      'Logout',

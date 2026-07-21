@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
+use App\Models\Setting;
+use App\Models\ShortUrl;
 use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +15,7 @@ class ArticleController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $articles = Article::with(['category:id,name', 'author:id,name', 'tags'])
+        $articles = Article::with(['category:id,name', 'categories:id,name', 'author:id,name', 'tags'])
             ->when($request->search, fn ($q, $s) =>
                 $q->where('title', 'like', "%{$s}%")
                   ->orWhere('excerpt', 'like', "%{$s}%")
@@ -29,7 +31,7 @@ class ArticleController extends Controller
     /** GET /api/articles/trending — public, top by views */
     public function trending(Request $request): JsonResponse
     {
-        $default = (int) \App\Models\Setting::where('key', 'trending_count')->value('value') ?: 7;
+        $default = (int) Setting::where('key', 'trending_count')->value('value') ?: 7;
         $limit   = max(1, min($request->integer('limit', $default), 20));
 
         $articles = Article::with(['category:id,name,color'])
@@ -69,7 +71,7 @@ class ArticleController extends Controller
     /** GET /api/articles/latest — public, paginated, optional ?category=IPL&lang=bn */
     public function latest(Request $request): JsonResponse
     {
-        $default = (int) \App\Models\Setting::where('key', 'latest_per_page')->value('value') ?: 6;
+        $default = (int) Setting::where('key', 'latest_per_page')->value('value') ?: 6;
         $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
 
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
@@ -88,12 +90,21 @@ class ArticleController extends Controller
     /** GET /api/articles/{slug} — public, single article by slug */
     public function showBySlug(string $slug): JsonResponse
     {
-        $article = Article::with(['category:id,name,color', 'author:id,name', 'tags'])
+        $article = Article::with(['category:id,name,color', 'categories:id,name,slug,color', 'author:id,name', 'tags', 'shortUrl'])
             ->where('status', 'published')
             ->where('slug', $slug)
             ->firstOrFail();
 
         $article->increment('views');
+
+        // Ensure a short URL exists for every viewed article
+        if (! $article->shortUrl) {
+            ShortUrl::create([
+                'article_id' => $article->id,
+                'code'       => ShortUrl::generateCode(),
+            ]);
+            $article->load('shortUrl');
+        }
 
         return response()->json($article);
     }
@@ -101,7 +112,7 @@ class ArticleController extends Controller
     /** GET /api/articles/featured — public, no auth */
     public function featured(Request $request): JsonResponse
     {
-        $limit = (int) \App\Models\Setting::where('key', 'featured_articles_count')->value('value') ?: 5;
+        $limit = (int) Setting::where('key', 'featured_articles_count')->value('value') ?: 5;
         $limit = max(1, min($limit, 20));
 
         $articles = Article::with(['category:id,name,color', 'author:id,name'])
@@ -156,6 +167,8 @@ class ArticleController extends Controller
             'featured_image' => ['nullable', 'string', 'max:500'],
             'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['required', 'integer', 'exists:categories,id'],
+            'category_ids'   => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
             'status'         => ['required', Rule::in(['draft', 'published'])],
             'language'       => ['sometimes', Rule::in(['bn', 'en'])],
             'is_featured'    => ['boolean'],
@@ -165,20 +178,26 @@ class ArticleController extends Controller
             'tags.*'         => ['string', 'max:50'],
         ]);
 
-        $data['content']   = $data['content'] ?? '';
-        $data['author_id'] = $request->user()->id;
+        $data['content']      = $data['content'] ?? '';
+        $data['author_id']    = $request->user()->id;
         $data['published_at'] = $data['status'] === 'published'
             ? ($data['published_at'] ?? now())
             : null;
 
-        $tagNames = $data['tags'] ?? [];
-        unset($data['tags']);
+        $tagNames    = $data['tags'] ?? [];
+        $categoryIds = $data['category_ids'] ?? [$data['category_id']];
+        unset($data['tags'], $data['category_ids']);
 
         $article = Article::create($data);
         $article->tags()->sync($this->resolveTagIds($tagNames));
+        $article->categories()->sync($this->resolveCategoryIds($categoryIds, $data['category_id']));
+
+        if ($article->status === 'published') {
+            ShortUrl::create(['article_id' => $article->id, 'code' => ShortUrl::generateCode()]);
+        }
 
         return response()->json(
-            $article->load(['category:id,name', 'author:id,name', 'tags']),
+            $article->load(['category:id,name', 'categories:id,name,slug,color', 'author:id,name', 'tags', 'shortUrl']),
             201
         );
     }
@@ -193,6 +212,8 @@ class ArticleController extends Controller
             'featured_image' => ['nullable', 'string', 'max:500'],
             'video_url'      => ['nullable', 'string', 'max:500'],
             'category_id'    => ['sometimes', 'integer', 'exists:categories,id'],
+            'category_ids'   => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
             'status'         => ['sometimes', Rule::in(['draft', 'published'])],
             'language'       => ['sometimes', Rule::in(['bn', 'en'])],
             'is_featured'    => ['boolean'],
@@ -202,12 +223,14 @@ class ArticleController extends Controller
             'tags.*'         => ['string', 'max:50'],
         ]);
 
-        if (isset($data['status']) && $data['status'] === 'published' && !$article->published_at) {
+        if (isset($data['status']) && $data['status'] === 'published' && ! $article->published_at) {
             $data['published_at'] = now();
         }
 
-        $tagNames = $data['tags'] ?? null;
-        unset($data['tags']);
+        $tagNames    = $data['tags'] ?? null;
+        $categoryIds = $data['category_ids'] ?? null;
+        $primaryId   = $data['category_id'] ?? $article->category_id;
+        unset($data['tags'], $data['category_ids']);
 
         $article->update($data);
 
@@ -215,7 +238,18 @@ class ArticleController extends Controller
             $article->tags()->sync($this->resolveTagIds($tagNames));
         }
 
-        return response()->json($article->load(['category:id,name', 'author:id,name', 'tags']));
+        if ($categoryIds !== null) {
+            $article->categories()->sync($this->resolveCategoryIds($categoryIds, $primaryId));
+        } elseif (isset($data['category_id'])) {
+            // primary changed but no explicit multi-select sent — keep existing extra cats + update primary
+            $existing = $article->categories()->pluck('categories.id')->toArray();
+            $article->categories()->sync($this->resolveCategoryIds(
+                array_unique(array_merge([$primaryId], $existing)),
+                $primaryId
+            ));
+        }
+
+        return response()->json($article->load(['category:id,name', 'categories:id,name,slug,color', 'author:id,name', 'tags']));
     }
 
     /** Find-or-create tags by name and return their IDs. */
@@ -229,6 +263,23 @@ class ArticleController extends Controller
                 ['slug' => Str::slug($name)],
                 ['name' => $name]
             )->id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Merge submitted category IDs with the auto-add default category from settings.
+     * Always includes the primary category_id.
+     */
+    private function resolveCategoryIds(array $ids, int $primaryId): array
+    {
+        $defaultId = (int) Setting::where('key', 'default_category_id')->value('value');
+
+        return collect($ids)
+            ->push($primaryId)
+            ->when($defaultId > 0, fn ($c) => $c->push($defaultId))
+            ->filter()
+            ->unique()
             ->values()
             ->all();
     }
@@ -261,7 +312,7 @@ class ArticleController extends Controller
     /** GET /api/articles/most-read-week — public */
     public function mostReadWeek(Request $request): JsonResponse
     {
-        $default = (int) \App\Models\Setting::where('key', 'most_read_count')->value('value') ?: 5;
+        $default = (int) Setting::where('key', 'most_read_count')->value('value') ?: 5;
         $limit   = max(1, min($request->integer('limit', $default), 20));
 
         $articles = Article::with(['category:id,name,color'])
@@ -272,7 +323,6 @@ class ArticleController extends Controller
             ->limit($limit)
             ->get(['id', 'title', 'slug', 'views', 'category_id', 'published_at', 'language']);
 
-        // Fallback: if fewer than 3 results in last 7 days, expand to 30 days
         if ($articles->count() < 3) {
             $articles = Article::with(['category:id,name,color'])
                 ->where('status', 'published')

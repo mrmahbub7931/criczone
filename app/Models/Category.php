@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Category extends Model
 {
@@ -25,5 +26,10 @@ class Category extends Model
     public function articles(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Article::class);
+    }
+
+    public function articlesPivot(): BelongsToMany
+    {
+        return $this->belongsToMany(Article::class);
     }
 }

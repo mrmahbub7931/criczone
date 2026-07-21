@@ -31,10 +31,10 @@ defineProps({
           {{ news.excerpt }}
         </p>
         <div class="flex items-center gap-4 text-white/50 text-xs">
-          <span class="flex items-center gap-1.5">
+          <!-- <span class="flex items-center gap-1.5">
             <User class="w-3.5 h-3.5" />
             {{ news.author }}
-          </span>
+          </span> -->
           <span class="flex items-center gap-1.5">
             <Clock class="w-3.5 h-3.5" />
             {{ news.readTime }}
@@ -70,10 +70,10 @@ defineProps({
         {{ news.excerpt }}
       </p>
       <div class="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
-        <span class="flex items-center gap-1.5">
+        <!-- <span class="flex items-center gap-1.5">
           <User class="w-3 h-3" />
           {{ news.author }}
-        </span>
+        </span> -->
         <span class="flex items-center gap-1.5">
           <Clock class="w-3 h-3" />
           {{ news.readTime }}

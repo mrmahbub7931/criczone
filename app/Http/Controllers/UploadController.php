@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 
 class UploadController extends Controller
 {
@@ -23,16 +21,31 @@ class UploadController extends Controller
             mkdir($dest, 0775, true);
         }
 
-        $manager = new ImageManager(new Driver());
-        $img     = $manager->read($file->getRealPath());
-
-        // Scale down to max 1920px wide (only shrinks, never enlarges)
-        if ($img->width() > 1920) {
-            $img->scaleDown(width: 1920);
-        }
-
         $filename = Str::uuid() . '.jpg';
-        $img->toJpeg(85)->save($dest . '/' . $filename);
+
+        // Try Intervention Image v3 (resize + compress)
+        try {
+            if (! extension_loaded('gd')) {
+                throw new \RuntimeException('GD not available');
+            }
+
+            $manager = new \Intervention\Image\ImageManager(
+                new \Intervention\Image\Drivers\Gd\Driver()
+            );
+            $img = $manager->read($file->getRealPath());
+
+            if ($img->width() > 1920) {
+                $img->scaleDown(width: 1920);
+            }
+
+            $img->toJpeg(85)->save($dest . '/' . $filename);
+
+        } catch (\Throwable $e) {
+            // Fallback: save original file as-is
+            $ext      = strtolower($file->getClientOriginalExtension());
+            $filename = Str::uuid() . '.' . $ext;
+            $file->move($dest, $filename);
+        }
 
         return response()->json([
             'url' => '/uploads/articles/' . $filename,
