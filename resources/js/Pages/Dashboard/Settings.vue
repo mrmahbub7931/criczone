@@ -437,6 +437,73 @@
           </div>
         </div>
 
+        <!-- ══ AI Translation ══════════════════════════════════════════════════ -->
+        <div v-show="activeTab === 'ai'" class="space-y-6">
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 class="font-bold text-gray-900 mb-1">AI Translation Provider</h2>
+            <p class="text-xs text-gray-400 mb-5">Choose which AI service to use for automatic Bengali ↔ English translation.</p>
+            <div class="space-y-5">
+
+              <!-- Provider selection -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-2">Provider</label>
+                <div class="grid grid-cols-2 gap-3 max-w-md">
+                  <label
+                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all"
+                    :class="form.ai.translation_provider === 'claude' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'"
+                  >
+                    <input type="radio" v-model="form.ai.translation_provider" value="claude" class="text-primary" />
+                    <div>
+                      <p class="text-sm font-bold text-gray-800">Claude Haiku 4.5</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Anthropic · $1/$5 per 1M</p>
+                    </div>
+                  </label>
+                  <label
+                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all"
+                    :class="form.ai.translation_provider === 'openai' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'"
+                  >
+                    <input type="radio" v-model="form.ai.translation_provider" value="openai" class="text-primary" />
+                    <div>
+                      <p class="text-sm font-bold text-gray-800">GPT-4.1 mini</p>
+                      <p class="text-xs text-gray-400 mt-0.5">OpenAI · $0.40/$1.60 per 1M</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Anthropic API Key -->
+              <div v-show="form.ai.translation_provider === 'claude'">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Anthropic API Key</label>
+                <input
+                  v-model="form.ai.anthropic_api_key"
+                  type="password"
+                  placeholder="sk-ant-api03-…"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] font-mono"
+                />
+                <p class="text-xs text-gray-400 mt-1">Get your key at <span class="font-mono">console.anthropic.com</span></p>
+              </div>
+
+              <!-- OpenAI API Key -->
+              <div v-show="form.ai.translation_provider === 'openai'">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">OpenAI API Key</label>
+                <input
+                  v-model="form.ai.openai_api_key"
+                  type="password"
+                  placeholder="sk-proj-…"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0D47A1] font-mono"
+                />
+                <p class="text-xs text-gray-400 mt-1">Get your key at <span class="font-mono">platform.openai.com</span></p>
+              </div>
+
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button @click="save('ai')" :disabled="saving" class="save-btn">
+              {{ saving ? 'Saving…' : 'Save AI Settings' }}
+            </button>
+          </div>
+        </div>
+
         <!-- ══ SMTP ════════════════════════════════════════════════════════════ -->
         <div v-show="activeTab === 'smtp'" class="space-y-6">
           <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
@@ -872,6 +939,7 @@ const tabs = [
   { key: 'seo',        label: 'SEO',           icon: '🔍'  },
   { key: 'homepage',   label: 'Homepage',      icon: '🏠'  },
   { key: 'footer',     label: 'Footer',        icon: '📄'  },
+  { key: 'ai',         label: 'AI Translation', icon: '🤖'  },
   { key: 'smtp',       label: 'Email & SMTP',  icon: '📧'  },
   { key: 'newsletter', label: 'Newsletter',    icon: '✉️'  },
   { key: 'polls',      label: 'Polls',         icon: '📊'  },
@@ -961,6 +1029,11 @@ const form = reactive({
     newsletter_welcome_subject: '', newsletter_welcome_body: '',
   },
   poll: { poll_enabled: '0' },
+  ai: {
+    translation_provider: 'claude',
+    anthropic_api_key: '',
+    openai_api_key: '',
+  },
 })
 
 const profile = reactive({

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
+use App\Models\ArticleTranslation;
 use App\Models\Setting;
 use App\Models\ShortUrl;
 use App\Models\Tag;
+use App\Traits\HandlesArticleTranslation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,6 +15,7 @@ use Illuminate\Validation\Rule;
 
 class ArticleController extends Controller
 {
+    use HandlesArticleTranslation;
     public function index(Request $request): JsonResponse
     {
         $articles = Article::with(['category:id,name', 'categories:id,name', 'author:id,name', 'tags'])
@@ -54,16 +57,42 @@ class ArticleController extends Controller
             return response()->json(['data' => [], 'query' => $q]);
         }
 
-        $results = Article::with(['category:id,name,color', 'author:id,name'])
+        $langEn = $request->lang === 'en';
+
+        $query = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($query) => $query->where('language', $request->lang))
-            ->where(fn ($query) =>
-                $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('excerpt', 'like', "%{$q}%")
-            )
             ->orderByDesc('published_at')
-            ->limit(20)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'author_id', 'language']);
+            ->limit(20);
+
+        if ($langEn) {
+            // Match English originals by their own text, OR Bangla articles by translated text
+            $query->where(function ($sub) use ($q) {
+                $sub->where(function ($a) use ($q) {
+                        $a->where('language', 'en')
+                          ->where(fn ($t) => $t->where('title', 'like', "%{$q}%")->orWhere('excerpt', 'like', "%{$q}%"));
+                    })
+                    ->orWhereHas('translations', fn ($t) =>
+                        $t->where('language', 'en')->where('status', 'done')
+                          ->where(fn ($ts) => $ts->where('title', 'like', "%{$q}%")->orWhere('excerpt', 'like', "%{$q}%"))
+                    );
+            });
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        } else {
+            $query->when($request->lang === 'bn', fn ($q2) => $q2->where('language', 'bn'))
+                  ->where(fn ($query) =>
+                      $query->where('title', 'like', "%{$q}%")
+                            ->orWhere('excerpt', 'like', "%{$q}%")
+                  );
+        }
+
+        $results = $query->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'author_id', 'language']);
+
+        if ($langEn) {
+            $results->transform(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json(['data' => $results, 'query' => $q]);
     }
@@ -73,27 +102,53 @@ class ArticleController extends Controller
     {
         $default = (int) Setting::where('key', 'latest_per_page')->value('value') ?: 6;
         $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
+        $langEn  = $request->lang === 'en';
 
-        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+        $query = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
             ->where(fn ($q) => $q->whereNull('video_url')->orWhere('video_url', ''))
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
             ->when($request->category, fn ($q, $cat) =>
                 $q->whereHas('category', fn ($q2) => $q2->where('name', $cat))
             )
-            ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'language', 'views', 'published_at', 'category_id', 'author_id']);
+            ->orderByDesc('published_at');
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'language', 'views', 'published_at', 'category_id', 'author_id']);
+
+        if ($langEn) {
+            $articles->through(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json($articles);
     }
 
-    /** GET /api/articles/{slug} — public, single article by slug */
+    /** GET /api/articles/{slug} — public, single article by slug or en_slug */
     public function showBySlug(string $slug): JsonResponse
     {
+        // Try original slug first, then en_slug from translations
         $article = Article::with(['category:id,name,color', 'categories:id,name,slug,color', 'author:id,name', 'tags', 'shortUrl'])
             ->where('status', 'published')
             ->where('slug', $slug)
-            ->firstOrFail();
+            ->first();
+
+        if (! $article) {
+            $trans = ArticleTranslation::where('en_slug', $slug)->where('status', 'done')->first();
+            if ($trans) {
+                $article = Article::with(['category:id,name,color', 'categories:id,name,slug,color', 'author:id,name', 'tags', 'shortUrl'])
+                    ->where('status', 'published')
+                    ->find($trans->article_id);
+            }
+        }
+
+        abort_if(! $article, 404);
 
         $article->increment('views');
 
@@ -112,16 +167,30 @@ class ArticleController extends Controller
     /** GET /api/articles/featured — public, no auth */
     public function featured(Request $request): JsonResponse
     {
-        $limit = (int) Setting::where('key', 'featured_articles_count')->value('value') ?: 5;
-        $limit = max(1, min($limit, 20));
+        $limit  = (int) Setting::where('key', 'featured_articles_count')->value('value') ?: 5;
+        $limit  = max(1, min($limit, 20));
+        $langEn = $request->lang === 'en';
 
-        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+        $query = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
             ->where('is_featured', true)
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
             ->orderByDesc('published_at')
-            ->limit($limit)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+            ->limit($limit);
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_featured', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+
+        if ($langEn) {
+            $articles->transform(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json($articles);
     }
@@ -130,13 +199,27 @@ class ArticleController extends Controller
     public function photoOfDay(Request $request): JsonResponse
     {
         $perPage = max(1, min($request->integer('per_page', 12), 48));
+        $langEn  = $request->lang === 'en';
 
-        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+        $query = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
             ->where('is_photo_day', true)
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
-            ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_photo_day', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
+            ->orderByDesc('published_at');
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'is_photo_day', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+
+        if ($langEn) {
+            $articles->through(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json($articles);
     }
@@ -145,14 +228,28 @@ class ArticleController extends Controller
     public function videos(Request $request): JsonResponse
     {
         $perPage = max(1, min($request->integer('per_page', 12), 48));
+        $langEn  = $request->lang === 'en';
 
-        $articles = Article::with(['category:id,name,color', 'author:id,name'])
+        $query = Article::with(['category:id,name,color', 'author:id,name'])
             ->where('status', 'published')
             ->whereNotNull('video_url')
             ->where('video_url', '!=', '')
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
-            ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'video_url', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
+            ->orderByDesc('published_at');
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'video_url', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+
+        if ($langEn) {
+            $articles->through(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json($articles);
     }
@@ -292,19 +389,41 @@ class ArticleController extends Controller
     }
 
     /** GET /api/articles/{slug}/related — public */
-    public function related(string $slug): JsonResponse
+    public function related(Request $request, string $slug): JsonResponse
     {
+        // Resolve article by original slug or en_slug
         $article = Article::where('slug', $slug)->where('status', 'published')->first();
+        if (! $article) {
+            $trans = ArticleTranslation::where('en_slug', $slug)->where('status', 'done')->first();
+            if ($trans) {
+                $article = Article::where('id', $trans->article_id)->where('status', 'published')->first();
+            }
+        }
         if (! $article) return response()->json([]);
 
-        $related = Article::with(['category:id,name,color', 'author:id,name'])
+        $langEn = $request->lang === 'en';
+
+        $query = Article::with(['category:id,name,color'])
             ->where('status', 'published')
             ->where('id', '!=', $article->id)
             ->where('category_id', $article->category_id)
-            ->where('language', $article->language ?? 'bn')
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when(! $langEn, fn ($q) => $q->where('language', $article->language ?? 'bn'))
             ->orderByDesc('published_at')
-            ->limit(3)
-            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'views', 'category_id', 'author_id', 'language']);
+            ->limit(3);
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $related = $query->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'language']);
+
+        if ($langEn) {
+            $related->transform(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json($related);
     }
@@ -335,4 +454,5 @@ class ArticleController extends Controller
 
         return response()->json($articles);
     }
+
 }

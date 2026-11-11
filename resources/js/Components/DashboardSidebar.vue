@@ -48,7 +48,7 @@
 import { computed } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
-  LayoutDashboard, Newspaper, Users, ShieldCheck, Tag, Tags, Radio, Settings, ChevronLeft, FileText, Menu, Video,
+  LayoutDashboard, Newspaper, Users, ShieldCheck, Tag, Tags, Radio, Settings, ChevronLeft, FileText, Menu, Video, Megaphone, Languages, Images,
 } from 'lucide-vue-next'
 
 defineProps({
@@ -65,7 +65,8 @@ const roles = computed(() => page.props.auth?.roles ?? [])
 const allItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'editor', 'viewer'] },
   { href: '/dashboard/articles', label: 'Articles', icon: Newspaper, roles: ['admin', 'editor'] },
-  { href: '/dashboard/videos', label: 'Video News', icon: Video, roles: ['admin', 'editor'] },
+  { href: '/dashboard/videos',    label: 'Video News',     icon: Video,  roles: ['admin', 'editor'] },
+  { href: '/dashboard/galleries', label: 'Photo Galleries', icon: Images, roles: ['admin', 'editor'] },
   { href: '/dashboard/pages', label: 'Pages', icon: FileText, roles: ['admin', 'editor'] },
   { href: '/dashboard/categories', label: 'Categories', icon: Tag, roles: ['admin', 'editor'] },
   { href: '/dashboard/tags',       label: 'Tags',       icon: Tags, roles: ['admin'] },
@@ -73,6 +74,8 @@ const allItems = [
   { href: '/dashboard/live-scores', label: 'Live Scores', icon: Radio, roles: ['admin'] },
   { href: '/dashboard/users', label: 'Users', icon: Users, roles: ['admin'] },
   { href: '/dashboard/roles', label: 'Roles', icon: ShieldCheck, roles: ['admin'] },
+  { href: '/dashboard/promotions',   label: 'Promotions & Ads', icon: Megaphone,  roles: ['admin'] },
+  { href: '/dashboard/translations', label: 'AI Translations',  icon: Languages,  roles: ['admin', 'editor'] },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ]
 

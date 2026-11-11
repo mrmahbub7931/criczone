@@ -139,6 +139,8 @@ const titleMap = {
   '/dashboard/live-scores': 'Live Scores',
   '/dashboard/users':       'Users',
   '/dashboard/roles':       'Roles',
+  '/dashboard/promotions':   'Promotions & Ads',
+  '/dashboard/translations': 'AI Translations',
   '/dashboard/settings':    'Settings',
   '/dashboard/videos':      'Video News',
 }

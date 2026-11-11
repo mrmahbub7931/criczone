@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { TrendingUp, Flame, Mail, Send, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { TrendingUp, Flame, Mail, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useSettings } from '@/composables/useSettings.js'
 import { useMenu }     from '@/composables/useMenu.js'
 import { useLocale }   from '@/composables/useLocale.js'
 import PollWidget      from '@/Components/PollWidget.vue'
+import AdSlot         from '@/Components/AdSlot.vue'
 
 const { get: setting } = useSettings()
 const { locale, t }    = useLocale()
@@ -47,12 +48,6 @@ const fetchSidebarData = async () => {
 onMounted(fetchSidebarData)
 watch(locale, fetchSidebarData)
 
-const formatViews = (n) => {
-  if (!n && n !== 0) return '0'
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
-  if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
-  return String(n)
-}
 
 // ── Newsletter ────────────────────────────────────────────────────────────────
 const email       = ref('')
@@ -89,6 +84,9 @@ const subscribe = async () => {
 <template>
   <aside class="space-y-6">
 
+    <!-- Sidebar top ad -->
+    <AdSlot position="home_sidebar_top" />
+
     <!-- ── Trending Now ───────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
       <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
@@ -123,10 +121,6 @@ const subscribe = async () => {
               <p class="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors duration-150 leading-snug">
                 {{ topic.title }}
               </p>
-              <span class="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                <Eye class="w-3 h-3" />
-                {{ formatViews(topic.views) }} views
-              </span>
             </div>
           </a>
         </li>
@@ -151,9 +145,6 @@ const subscribe = async () => {
           >{{ i + 1 }}</span>
           <div class="min-w-0">
             <p class="text-sm font-semibold text-gray-800 leading-snug">{{ topic.title }}</p>
-            <span class="flex items-center gap-1 text-xs text-gray-400 mt-1">
-              <Eye class="w-3 h-3" /> 0 views
-            </span>
           </div>
         </li>
       </ul>
@@ -188,10 +179,6 @@ const subscribe = async () => {
               <p class="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors leading-snug line-clamp-2">
                 {{ item.title }}
               </p>
-              <span class="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                <Eye class="w-3 h-3" />
-                {{ formatViews(item.views) }} views
-              </span>
             </div>
           </a>
         </li>
@@ -201,6 +188,9 @@ const subscribe = async () => {
 
     <!-- ── Poll Widget ────────────────────────────────────────────────────── -->
     <PollWidget />
+
+    <!-- Sidebar middle ad -->
+    <AdSlot position="home_sidebar_mid" />
 
     <!-- ── Newsletter ─────────────────────────────────────────────────────── -->
     <div v-if="newsletterEnabled" class="bg-gradient-to-br from-primary to-primary-dark rounded-xl p-5 text-white shadow-lg">
@@ -251,6 +241,9 @@ const subscribe = async () => {
         </button>
       </div>
     </div>
+
+    <!-- Sidebar bottom ad (below newsletter) -->
+    <AdSlot position="home_sidebar_bottom" />
 
     <!-- ── Quick Links (driven by footer_quick menu) ────────────────────── -->
     <div class="bg-white rounded-xl shadow-sm p-5">

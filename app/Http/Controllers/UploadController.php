@@ -11,7 +11,7 @@ class UploadController extends Controller
     public function image(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:4096'],
+            'image' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:10240'],
         ]);
 
         $file = $request->file('image');
@@ -21,7 +21,8 @@ class UploadController extends Controller
             mkdir($dest, 0775, true);
         }
 
-        $filename = Str::uuid() . '.jpg';
+        $ext      = strtolower($file->getClientOriginalExtension()) ?: 'jpg';
+        $filename = Str::uuid() . '.' . $ext;
 
         // Try Intervention Image v3 (resize + compress)
         try {
@@ -38,12 +39,14 @@ class UploadController extends Controller
                 $img->scaleDown(width: 1920);
             }
 
-            $img->toJpeg(85)->save($dest . '/' . $filename);
+            if ($ext === 'webp') {
+                $img->toWebp(85)->save($dest . '/' . $filename);
+            } else {
+                $img->toJpeg(85)->save($dest . '/' . ($filename = Str::uuid() . '.jpg'));
+            }
 
         } catch (\Throwable $e) {
             // Fallback: save original file as-is
-            $ext      = strtolower($file->getClientOriginalExtension());
-            $filename = Str::uuid() . '.' . $ext;
             $file->move($dest, $filename);
         }
 

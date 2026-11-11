@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tag;
+use App\Traits\HandlesArticleTranslation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -10,6 +11,7 @@ use Illuminate\Validation\Rule;
 
 class TagController extends Controller
 {
+    use HandlesArticleTranslation;
     /** GET /api/tags?search=  — public, used for autocomplete + admin list */
     public function index(Request $request): JsonResponse
     {
@@ -57,13 +59,27 @@ class TagController extends Controller
     {
         $tag     = Tag::where('slug', $slug)->firstOrFail();
         $perPage = max(1, min($request->integer('per_page', 12), 48));
+        $langEn  = $request->lang === 'en';
 
-        $articles = $tag->articles()
-            ->with(['category:id,name,color', 'author:id,name'])
+        $query = $tag->articles()
+            ->with(['category:id,name,color'])
             ->where('status', 'published')
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
-            ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
+            ->orderByDesc('published_at');
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'category_id', 'language']);
+
+        if ($langEn) {
+            $articles->through(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json(['tag' => $tag, 'articles' => $articles]);
     }

@@ -99,8 +99,11 @@ import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import { Tag } from 'lucide-vue-next'
 import MainLayout from '@/Layouts/MainLayout.vue'
+import { useLocale } from '@/composables/useLocale.js'
 
 const props = defineProps({ slug: { type: String, required: true } })
+
+const { locale } = useLocale()
 
 const tag      = ref(null)
 const articles = ref({})
@@ -115,7 +118,9 @@ const formatDate = (d) => d
 const fetchData = async () => {
   loading.value = true
   try {
-    const { data } = await axios.get(`/api/tags/${props.slug}/articles`, { params: { page: page.value } })
+    const { data } = await axios.get(`/api/tags/${props.slug}/articles`, {
+      params: { page: page.value, lang: locale.value },
+    })
     tag.value      = data.tag
     articles.value = data.articles
   } catch {
@@ -127,4 +132,5 @@ const fetchData = async () => {
 
 onMounted(fetchData)
 watch(page, fetchData)
+watch(locale, () => { page.value = 1; fetchData() })
 </script>

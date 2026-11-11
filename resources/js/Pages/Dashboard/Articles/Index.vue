@@ -213,10 +213,10 @@
                     :class="{ 'opacity-60 cursor-not-allowed': uploading }"
                   >
                     <Upload :size="15" class="shrink-0" />
-                    <span>{{ uploading ? 'Uploading…' : 'Choose image' }}</span>
-                    <input type="file" accept="image/*" class="hidden" :disabled="uploading" @change="uploadImage" />
+                    <span>{{ uploading ? 'Uploading…' : 'Choose & Crop Image' }}</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" :disabled="uploading" @change="uploadImage" />
                   </label>
-                  <p class="text-xs text-gray-400">JPG, PNG, GIF or WebP — max 4 MB</p>
+                  <p class="text-xs text-gray-400">JPG or PNG — max 4 MB. You can crop and position after selecting.</p>
                   <Err :e="errors.featured_image" />
                 </div>
               </div>
@@ -323,6 +323,14 @@
       </div>
     </Transition>
 
+    <!-- Image Cropper Modal -->
+    <ImageCropper
+      :show="cropperShow"
+      :file="cropperFile"
+      @apply="onCropApply"
+      @cancel="onCropCancel"
+    />
+
   </DashboardLayout>
 </template>
 
@@ -332,6 +340,7 @@ import axios from 'axios'
 import { Plus, Search, Pencil, Trash2, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
 import RichEditor from '@/Components/RichEditor.vue'
+import ImageCropper from '@/Components/ImageCropper.vue'
 
 const Err = defineComponent({ props: ['e'], render() { return this.e ? h('p', { class: 'text-xs text-red-500 mt-1' }, this.e) : null } })
 
@@ -352,6 +361,9 @@ const uploading    = ref(false)
 const errors       = ref({})
 const deleteTarget = ref(null)
 const toast        = ref('')
+
+const cropperShow = ref(false)
+const cropperFile = ref(null)
 
 const blankForm = () => ({ title: '', slug: '', excerpt: '', content: '', featured_image: '', video_url: '', category_id: '', category_ids: [], status: 'draft', language: 'bn', is_featured: false, is_photo_day: false, tags: [] })
 const form = ref(blankForm())
@@ -455,15 +467,22 @@ const showToast = (msg) => { toast.value = msg; setTimeout(() => { toast.value =
 const field = (err) =>
   `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${err ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-[#0D47A1]'}`
 
-// ── Image upload ──────────────────────────────────────────────────────────
-const uploadImage = async (e) => {
+// ── Image upload with cropper ─────────────────────────────────────────────
+const uploadImage = (e) => {
   const file = e.target.files?.[0]
   if (!file) return
+  cropperFile.value = file
+  cropperShow.value = true
+  e.target.value = ''
+}
+
+const onCropApply = async (croppedFile) => {
+  cropperShow.value = false
   uploading.value = true
   errors.value.featured_image = null
   try {
     const fd = new FormData()
-    fd.append('image', file)
+    fd.append('image', croppedFile)
     const { data } = await axios.post('/api/upload-image', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
@@ -472,8 +491,12 @@ const uploadImage = async (e) => {
     errors.value.featured_image = err.response?.data?.message ?? 'Upload failed.'
   } finally {
     uploading.value = false
-    e.target.value = ''
   }
+}
+
+const onCropCancel = () => {
+  cropperShow.value = false
+  cropperFile.value = null
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────

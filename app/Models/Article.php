@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Article extends Model
@@ -99,5 +100,15 @@ class Article extends Model
     public function shortUrl(): HasOne
     {
         return $this->hasOne(ShortUrl::class);
+    }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(ArticleTranslation::class);
+    }
+
+    public function translation(string $lang): HasOne
+    {
+        return $this->hasOne(ArticleTranslation::class)->where('language', $lang);
     }
 }

@@ -66,7 +66,7 @@ const goToSlide = (i) => {
           <img
             :src="slide.image"
             :alt="slide.title"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-cover object-top"
           />
           <!-- Gradient overlay -->
           <div class="absolute inset-0 bg-gradient-to-r from-primary-dark/90 via-primary/70 to-transparent" />

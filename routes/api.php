@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\TranslationController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TagController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShortUrlController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PhotoGalleryController;
 use Illuminate\Support\Facades\Route;
 
 // All routes here are already under the 'web' middleware group (see bootstrap/app.php)
@@ -39,9 +42,13 @@ Route::get('categories/{slug}/articles',[CategoryController::class, 'categoryArt
 Route::get('live-scores',               [LiveScoreController::class, 'publicList']);
 Route::get('search',                    [ArticleController::class, 'search']);
 Route::post('newsletter/subscribe',     [NewsletterController::class, 'subscribe']);
+Route::get('ads/public',               [PromotionController::class, 'publicIndex']);
+Route::get('article/{slug}/translation/{lang}', [TranslationController::class, 'show']);
 Route::get('tags',                      [TagController::class, 'index']);
 Route::get('tags/{slug}/articles',      [TagController::class, 'articles']);
 Route::get('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe']);
+Route::get('galleries',                 [PhotoGalleryController::class, 'index']);
+Route::get('galleries/{slug}',          [PhotoGalleryController::class, 'show']);
 
 Route::middleware('auth')->group(function () {
 
@@ -122,6 +129,38 @@ Route::middleware('auth')->group(function () {
         Route::post  ('admin/polls',          [PollController::class, 'store']);
         Route::put   ('admin/polls/{poll}',   [PollController::class, 'update']);
         Route::delete('admin/polls/{poll}',   [PollController::class, 'destroy']);
+    });
+
+    // ── Translations (admin only) ────────────────────────────────────────────
+    Route::middleware('role:admin,editor')->group(function () {
+        Route::get   ('admin/translations',                            [TranslationController::class, 'index']);
+        Route::post  ('admin/translations/{article}/translate',        [TranslationController::class, 'translate']);
+        Route::post  ('admin/translations/batch',                      [TranslationController::class, 'batch']);
+        Route::put   ('admin/translations/{article}/{lang}',           [TranslationController::class, 'update']);
+        Route::delete('admin/translations/{article}/{lang}',           [TranslationController::class, 'destroy']);
+    });
+
+    // ── Photo Galleries (admin + editor) ────────────────────────────────────
+    Route::middleware('role:admin,editor')->group(function () {
+        Route::get   ('admin/galleries',                                  [PhotoGalleryController::class, 'adminIndex']);
+        Route::get   ('admin/galleries/{gallery}',                        [PhotoGalleryController::class, 'adminShow']);
+        Route::post  ('admin/galleries/{gallery}/set-cover',              [PhotoGalleryController::class, 'setCover']);
+        Route::post  ('admin/galleries',                                  [PhotoGalleryController::class, 'store']);
+        Route::put   ('admin/galleries/{gallery}',                        [PhotoGalleryController::class, 'update']);
+        Route::delete('admin/galleries/{gallery}',                        [PhotoGalleryController::class, 'destroy']);
+        Route::post  ('admin/galleries/{gallery}/photos',                 [PhotoGalleryController::class, 'addPhoto']);
+        Route::put   ('admin/galleries/{gallery}/photos/{photo}',         [PhotoGalleryController::class, 'updatePhoto']);
+        Route::delete('admin/galleries/{gallery}/photos/{photo}',         [PhotoGalleryController::class, 'removePhoto']);
+        Route::post  ('admin/galleries/{gallery}/reorder',                [PhotoGalleryController::class, 'reorder']);
+        Route::post  ('admin/galleries/{gallery}/translate-captions',    [PhotoGalleryController::class, 'translateCaptions']);
+    });
+
+    // ── Promotions (admin only) ───────────────────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get   ('admin/promotions',              [PromotionController::class, 'index']);
+        Route::post  ('admin/promotions',              [PromotionController::class, 'store']);
+        Route::put   ('admin/promotions/{promotion}',  [PromotionController::class, 'update']);
+        Route::delete('admin/promotions/{promotion}',  [PromotionController::class, 'destroy']);
     });
 
     // ── Menus (admin only) ────────────────────────────────────────────────

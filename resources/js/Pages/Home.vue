@@ -11,7 +11,7 @@
       <section class="mb-12">
         <div class="flex items-center gap-3 mb-6">
           <div class="h-8 w-1 bg-secondary rounded-full" />
-          <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
+          <h2 class="text-2xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">
             {{ t('home.featuredNews') }}
           </h2>
         </div>
@@ -35,16 +35,16 @@
               class="cursor-pointer"
               @click="handleArticleClick(card)"
             >
-              <div class="group flex gap-3 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 p-3">
+              <div class="group flex gap-3 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 p-3">
                 <img
                   :src="card.imageUrl"
                   :alt="card.title"
-                  class="w-24 h-20 object-cover rounded-lg flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
+                  class="w-24 h-20 object-cover object-top rounded-lg flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
                 />
                 <div class="flex-1 min-w-0">
                   <span class="text-[10px] font-bold text-secondary uppercase tracking-wider">{{ card.category }}</span>
-                  <h3 class="text-sm font-bold text-gray-900 leading-snug mt-0.5 line-clamp-2 group-hover:text-primary transition-colors">{{ card.title }}</h3>
-                  <p class="text-xs text-gray-400 mt-1">{{ card.author }} · {{ card.readTime }}</p>
+                  <h3 class="text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug mt-0.5 line-clamp-2 group-hover:text-primary transition-colors">{{ card.title }}</h3>
+                  <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">{{ card.date }}</p>
                 </div>
               </div>
             </div>
@@ -56,24 +56,23 @@
           <div
             v-for="card in displayedCards"
             :key="card.id"
-            class="cursor-pointer group flex gap-4 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+            class="cursor-pointer group flex gap-4 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
             @click="handleArticleClick(card)"
           >
             <img
               :src="card.imageUrl"
               :alt="card.title"
-              class="w-40 sm:w-52 h-32 object-cover flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
+              class="w-40 sm:w-52 h-32 object-cover object-top flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
             />
             <div class="flex-1 min-w-0 py-4 pr-4">
               <span
                 class="inline-block text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider mb-2"
                 :style="{ backgroundColor: '#0D47A1', color: '#fff' }"
               >{{ card.category }}</span>
-              <h3 class="font-black text-gray-900 text-base leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">{{ card.title }}</h3>
-              <p class="text-sm text-gray-500 line-clamp-2 mb-3">{{ card.excerpt }}</p>
-              <div class="flex items-center gap-4 text-xs text-gray-400">
-                <span>{{ card.author }}</span>
-                <span>{{ card.readTime }}</span>
+              <h3 class="font-black text-gray-900 dark:text-slate-100 text-base leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">{{ card.title }}</h3>
+              <p class="text-sm text-gray-500 dark:text-slate-400 line-clamp-2 mb-3">{{ card.excerpt }}</p>
+              <div class="flex items-center gap-4 text-xs text-gray-400 dark:text-slate-500">
+                <span>{{ card.date }}</span>
               </div>
             </div>
           </div>
@@ -100,12 +99,16 @@
 
       </section>
 
-      <!-- ── দিনের সেরা ছবি (Photo of the Day) ──────────────────────────────── -->
+      <!-- Home after featured ad -->
+      <AdSlot position="home_after_featured" />
+
+      <!-- ── ফটো ফিচার (Photo Galleries) ─────────────────────────────────────── -->
       <section v-if="photoOfDay.length" class="mb-12">
-        <div class="flex items-center justify-between mb-6">
+        <!-- Section header -->
+        <div class="flex items-center justify-between mb-5">
           <div class="flex items-center gap-3">
-            <div class="h-8 w-1 bg-amber-400 rounded-full" />
-            <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight font-bangla">
+            <div class="h-8 w-1 bg-amber-500 rounded-full" />
+            <h2 class="text-2xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">
               {{ t('home.photoOfDay') }}
             </h2>
           </div>
@@ -114,26 +117,96 @@
           </a>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          <a
-            v-for="photo in photoOfDay.slice(0, 5)"
-            :key="photo.id"
-            :href="`/article/${photo.slug}`"
-            class="group relative overflow-hidden rounded-xl aspect-square bg-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-          >
-            <img
-              :src="photo.featured_image || 'https://placehold.co/400x400/f59e0b/white?text=📸'"
-              :alt="photo.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <!-- Gradient overlay + title -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-            <div class="absolute bottom-0 left-0 right-0 p-2.5">
-              <p class="text-white text-[11px] font-bold leading-snug line-clamp-2 font-bangla">{{ photo.title }}</p>
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+
+          <!-- Left: Featured gallery with preview slideshow -->
+          <div v-if="photoOfDay[0]" class="group">
+            <div class="relative overflow-hidden bg-gray-100 rounded-sm">
+              <!-- Auto-slide progress bar -->
+              <div v-if="featuredGalleryDetail?.photos?.length > 1" class="absolute top-0 left-0 right-0 z-20 h-[3px] bg-black/20">
+                <div
+                  class="h-full bg-red-500"
+                  :style="{
+                    width: sliderProgress + '%',
+                    transition: (sliderPaused || sliderProgress === 0) ? 'none' : ('width ' + SLIDE_MS + 'ms linear')
+                  }"
+                />
+              </div>
+              <!-- Counter + controls -->
+              <div v-if="featuredGalleryDetail?.photos?.length" class="absolute top-3 left-3 z-10 flex items-center gap-2">
+                <div class="bg-black/60 text-white text-xs font-bold px-2.5 py-1 rounded-sm">
+                  {{ featuredPhotoIdx + 1 }} / {{ featuredGalleryDetail.photos.length }}
+                </div>
+              </div>
+              <!-- Prev / Pause / Next controls (top-right) -->
+              <div v-if="featuredGalleryDetail?.photos?.length > 1" class="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                <button @click.stop="prevSlide"
+                  class="w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <button @click.stop="sliderPaused = !sliderPaused"
+                  class="w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors">
+                  <svg v-if="!sliderPaused" class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+                  <svg v-else class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button @click.stop="nextSlide"
+                  class="w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+              <!-- Image -->
+              <a :href="`/photo-of-day/${photoOfDay[0].slug}`">
+                <img
+                  :src="featuredGalleryPhoto || photoOfDay[0].cover_image || 'https://placehold.co/800x500/f59e0b/white?text=📸'"
+                  :alt="photoOfDay[0].title"
+                  class="w-full aspect-[16/10] object-cover transition-opacity duration-300"
+                />
+                <!-- Caption bar -->
+                <div v-if="featuredCaption" class="bg-gray-100 dark:bg-slate-800 px-3 py-2 border-t border-gray-200 dark:border-slate-700">
+                  <p class="text-xs text-gray-500 dark:text-slate-400 line-clamp-1">{{ featuredCaption }}</p>
+                </div>
+              </a>
             </div>
-            <!-- Badge -->
-            <div class="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">📸</div>
-          </a>
+            <!-- Title + date -->
+            <a :href="`/photo-of-day/${photoOfDay[0].slug}`" class="block mt-3 hover:text-primary transition-colors">
+              <h3 class="text-lg font-black text-gray-900 dark:text-slate-100 leading-snug line-clamp-2">{{ (locale === 'en' && photoOfDay[0].title_en) ? photoOfDay[0].title_en : photoOfDay[0].title }}</h3>
+              <p class="text-xs text-gray-400 mt-1">{{ formatGalleryDate(photoOfDay[0].published_at) }}</p>
+            </a>
+          </div>
+
+          <!-- Right: 2×2 grid of remaining galleries -->
+          <div class="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-3">
+            <a
+              v-for="gallery in photoOfDay.slice(1, 5)"
+              :key="gallery.id"
+              :href="`/photo-of-day/${gallery.slug}`"
+              class="group flex lg:flex-row gap-3 items-start"
+            >
+              <!-- Thumbnail -->
+              <div class="relative overflow-hidden rounded-sm flex-shrink-0 w-full lg:w-28 aspect-[4/3] lg:aspect-square bg-gray-100">
+                <img
+                  :src="gallery.cover_image || 'https://placehold.co/200x200/f59e0b/white?text=📸'"
+                  :alt="gallery.title"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <!-- Camera icon badge -->
+                <div class="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center">
+                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 1015.2 12 3.2 3.2 0 0012 15.2zm0 0M20 4h-3.17L15 2H9L7.17 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm-8 13a5 5 0 110-10 5 5 0 010 10z"/></svg>
+                </div>
+              </div>
+              <!-- Hidden on mobile, shown on lg -->
+              <div class="hidden lg:block flex-1 min-w-0">
+                <h4 class="text-sm font-black text-gray-800 dark:text-slate-200 leading-snug line-clamp-2 group-hover:text-primary transition-colors">{{ (locale === 'en' && gallery.title_en) ? gallery.title_en : gallery.title }}</h4>
+                <p class="text-[11px] text-gray-400 mt-1">{{ formatGalleryDate(gallery.published_at) }}</p>
+              </div>
+              <!-- Mobile: title below image (shown as column) -->
+              <div class="lg:hidden mt-1.5">
+                <h4 class="text-xs font-black text-gray-800 dark:text-slate-200 leading-snug line-clamp-2">{{ (locale === 'en' && gallery.title_en) ? gallery.title_en : gallery.title }}</h4>
+                <p class="text-[10px] text-gray-400 mt-0.5">{{ formatGalleryDate(gallery.published_at) }}</p>
+              </div>
+            </a>
+          </div>
+
         </div>
       </section>
 
@@ -144,7 +217,7 @@
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center gap-3">
             <div class="h-8 w-1 bg-secondary rounded-full" />
-            <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">{{ t('home.videos') }}</h2>
+            <h2 class="text-2xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">{{ t('home.videos') }}</h2>
           </div>
           <a href="/videos" class="text-xs font-bold text-secondary hover:text-secondary-dark flex items-center gap-1 transition-colors">
             {{ t('home.viewAllVideos') }} <ChevronRight :size="13" />
@@ -179,7 +252,7 @@
               v-if="homeVideos[0].featured_image"
               :src="homeVideos[0].featured_image"
               :alt="homeVideos[0].title"
-              class="w-full h-full object-cover absolute inset-0 opacity-75 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
+              class="w-full h-full object-cover object-top absolute inset-0 opacity-75 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
             />
             <div v-else class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
 
@@ -215,10 +288,6 @@
                 {{ homeVideos[0].excerpt }}
               </p>
               <div class="flex items-center gap-4 text-white/60 text-xs">
-                <span class="flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  {{ fmtViews(homeVideos[0].views) }} views
-                </span>
                 <span>{{ formatVideoDate(homeVideos[0].published_at) }}</span>
               </div>
             </div>
@@ -232,11 +301,11 @@
                 v-for="video in homeVideos.slice(1)"
                 :key="video.id"
                 :href="`/article/${video.slug}`"
-                class="group shrink-0 w-56 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                class="group shrink-0 w-56 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
               >
                 <div class="relative h-32 bg-gray-900 overflow-hidden">
                   <img v-if="video.featured_image" :src="video.featured_image" :alt="video.title"
-                    class="w-full h-full object-cover opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500" />
+                    class="w-full h-full object-cover object-top opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500" />
                   <div v-else class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
                   <div class="absolute inset-0 flex items-center justify-center">
                     <div class="w-9 h-9 rounded-full bg-white/20 border border-white/60 flex items-center justify-center group-hover:bg-white/30 transition-all">
@@ -245,8 +314,8 @@
                   </div>
                 </div>
                 <div class="p-3">
-                  <p class="text-xs font-bold text-gray-800 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{{ video.title }}</p>
-                  <p class="text-[11px] text-gray-400 mt-1.5">{{ fmtViews(video.views) }} views · {{ formatVideoDate(video.published_at) }}</p>
+                  <p class="text-xs font-bold text-gray-800 dark:text-slate-200 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{{ video.title }}</p>
+                  <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-1.5">{{ formatVideoDate(video.published_at) }}</p>
                 </div>
               </a>
             </div>
@@ -256,12 +325,12 @@
               v-for="video in homeVideos.slice(1)"
               :key="'d' + video.id"
               :href="`/article/${video.slug}`"
-              class="group hidden lg:flex items-start gap-3 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 p-0"
+              class="group hidden lg:flex items-start gap-3 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 p-0"
             >
               <!-- Thumbnail -->
               <div class="relative w-32 shrink-0 h-[84px] bg-gray-900 overflow-hidden rounded-l-xl">
                 <img v-if="video.featured_image" :src="video.featured_image" :alt="video.title"
-                  class="w-full h-full object-cover opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500" />
+                  class="w-full h-full object-cover object-top opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500" />
                 <div v-else class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div class="w-8 h-8 rounded-full bg-white/20 border border-white/60 flex items-center justify-center group-hover:bg-white/30 transition-all">
@@ -271,12 +340,8 @@
               </div>
               <!-- Info -->
               <div class="flex-1 min-w-0 py-2.5 pr-3">
-                <p class="text-sm font-bold text-gray-800 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{{ video.title }}</p>
-                <div class="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
-                  <span class="flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    {{ fmtViews(video.views) }}
-                  </span>
+                <p class="text-sm font-bold text-gray-800 dark:text-slate-200 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{{ video.title }}</p>
+                <div class="flex items-center gap-3 mt-1.5 text-xs text-gray-400 dark:text-slate-500">
                   <span>{{ formatVideoDate(video.published_at) }}</span>
                 </div>
               </div>
@@ -294,7 +359,7 @@
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <div class="h-8 w-1 bg-primary rounded-full" />
-              <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">
+              <h2 class="text-2xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">
                 {{ t('home.latestNews') }}
               </h2>
             </div>
@@ -306,7 +371,7 @@
             <button
               v-show="canScrollLeft"
               @click="scrollCats(-1)"
-              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg text-gray-500 hover:text-primary transition-all"
+              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-full shadow-md hover:shadow-lg text-gray-500 dark:text-slate-300 hover:text-primary transition-all"
             >
               <ChevronLeft :size="14" />
             </button>
@@ -324,7 +389,7 @@
                 class="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap"
                 :class="selectedCategory === cat.name
                   ? 'bg-primary text-white shadow-md'
-                  : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'"
+                  : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'"
               >
                 <span
                   v-if="cat.color"
@@ -346,7 +411,7 @@
             <button
               v-show="canScrollRight"
               @click="scrollCats(1)"
-              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg text-gray-500 hover:text-primary transition-all"
+              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-full shadow-md hover:shadow-lg text-gray-500 dark:text-slate-300 hover:text-primary transition-all"
             >
               <ChevronRight :size="14" />
             </button>
@@ -377,7 +442,7 @@
           </div>
 
           <!-- Empty state -->
-          <div v-if="!latestLoading && latestNews.length === 0" class="text-center py-16 bg-white rounded-xl">
+          <div v-if="!latestLoading && latestNews.length === 0" class="text-center py-16 bg-white dark:bg-slate-800 rounded-xl">
             <p class="text-gray-400 text-sm">{{ t('home.noArticles') }}</p>
           </div>
 
@@ -413,6 +478,7 @@ import MainLayout from '@/Layouts/MainLayout.vue'
 import Hero from '@/Components/Hero.vue'
 import NewsCard from '@/Components/NewsCard.vue'
 import Sidebar from '@/Components/Sidebar.vue'
+import AdSlot from '@/Components/AdSlot.vue'
 import { useSettings } from '@/composables/useSettings.js'
 import { useLocale }   from '@/composables/useLocale.js'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
@@ -465,8 +531,7 @@ const toCardLatest = (a) => ({
   excerpt:  a.excerpt || '',
   imageUrl: a.featured_image || `https://placehold.co/800x450/0D47A1/white?text=${encodeURIComponent(a.title?.slice(0, 20) || 'CricZone')}`,
   category: a.category?.name  || 'Cricket',
-  author:   a.author?.name    || 'Staff Writer',
-  readTime: a.excerpt ? `${Math.max(1, Math.ceil(a.excerpt.split(' ').length / 200))} min read` : '3 min read',
+  date:     a.published_at ? new Date(a.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
 })
 
 const fetchLatest = async (page = 1, append = false) => {
@@ -532,16 +597,14 @@ const toCard = (a) => ({
   excerpt:   a.excerpt || '',
   imageUrl:  a.featured_image || `https://placehold.co/800x450/0D47A1/white?text=${encodeURIComponent(a.title?.slice(0, 30) || 'CricZone')}`,
   category:  a.category?.name  || 'Cricket',
-  author:    a.author?.name    || 'Staff Writer',
-  readTime:  a.excerpt ? `${Math.max(1, Math.ceil(a.excerpt.split(' ').length / 200))} min read` : '3 min read',
   isFeatured: a.is_featured,
 })
 
 // Fallback demo cards shown when DB is empty
 const demoCards = [
-  { id: 'd1', slug: '#', title: 'India Clinches Historic Series Win Against Australia', excerpt: 'A stunning final-day performance sealed the remarkable comeback in one of the greatest Test series of the decade.', imageUrl: 'https://placehold.co/800x450/0D47A1/white?text=Featured+Story', category: 'Test Cricket', author: 'Staff Writer', readTime: '4 min read', isFeatured: true },
-  { id: 'd2', slug: '#', title: 'IPL 2026 Auction: Top Buys Revealed', excerpt: 'The mega auction saw record-breaking bids as franchises scrambled to build their dream squads.', imageUrl: 'https://placehold.co/800x450/1565C0/white?text=IPL+News', category: 'IPL', author: 'Reporter', readTime: '3 min read', isFeatured: false },
-  { id: 'd3', slug: '#', title: 'T20 World Cup 2026 Schedule Announced', excerpt: 'The ICC officially confirmed the full schedule for the upcoming T20 World Cup with 20 participating nations.', imageUrl: 'https://placehold.co/800x450/0277BD/white?text=T20+WC', category: 'T20', author: 'Desk', readTime: '2 min read', isFeatured: false },
+  { id: 'd1', slug: '#', title: 'India Clinches Historic Series Win Against Australia', excerpt: 'A stunning final-day performance sealed the remarkable comeback in one of the greatest Test series of the decade.', imageUrl: 'https://placehold.co/800x450/0D47A1/white?text=Featured+Story', category: 'Test Cricket', isFeatured: true },
+  { id: 'd2', slug: '#', title: 'IPL 2026 Auction: Top Buys Revealed', excerpt: 'The mega auction saw record-breaking bids as franchises scrambled to build their dream squads.', imageUrl: 'https://placehold.co/800x450/1565C0/white?text=IPL+News', category: 'IPL', isFeatured: false },
+  { id: 'd3', slug: '#', title: 'T20 World Cup 2026 Schedule Announced', excerpt: 'The ICC officially confirmed the full schedule for the upcoming T20 World Cup with 20 participating nations.', imageUrl: 'https://placehold.co/800x450/0277BD/white?text=T20+WC', category: 'T20', isFeatured: false },
 ]
 
 const featuredLayout = computed(() => setting('homepage', 'articles_layout', 'grid'))
@@ -565,16 +628,91 @@ const fetchFeatured = async () => {
 onMounted(fetchFeatured)
 
 // ── Photo of the Day ─────────────────────────────────────────────────────────
-const photoOfDay = ref([])
+const photoOfDay            = ref([])
+const featuredPhotoIdx      = ref(0)
+const featuredGalleryDetail = ref(null)
+const sliderPaused          = ref(false)
+const sliderProgress        = ref(0)
+const SLIDE_MS              = 4000
+
+let sliderTimer   = null
+let progressTimer = null
+
+const featuredGalleryPhoto = computed(() => {
+  if (featuredGalleryDetail.value?.photos?.length) {
+    return featuredGalleryDetail.value.photos[featuredPhotoIdx.value]?.image_path
+  }
+  return photoOfDay.value[0]?.cover_image ?? null
+})
+
+const featuredCaption = computed(() => {
+  const photo = featuredGalleryDetail.value?.photos?.[featuredPhotoIdx.value]
+  if (!photo) return ''
+  if (locale.value === 'en' && photo.caption_en) return photo.caption_en
+  return photo.caption ?? ''
+})
+
+const formatGalleryDate = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString(locale.value === 'bn' ? 'bn-BD' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function startSlider() {
+  stopSlider()
+  const total = featuredGalleryDetail.value?.photos?.length ?? 0
+  if (total < 2) return
+  // Reset to 0 (no transition), then animate to 100 on next frame
+  sliderProgress.value = 0
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { sliderProgress.value = 100 })
+  })
+  sliderTimer = setTimeout(() => {
+    if (!sliderPaused.value) nextSlide()
+  }, SLIDE_MS)
+}
+
+function stopSlider() {
+  clearTimeout(sliderTimer)
+  sliderTimer = null
+}
+
+function nextSlide() {
+  const total = featuredGalleryDetail.value?.photos?.length ?? 0
+  featuredPhotoIdx.value = (featuredPhotoIdx.value + 1) % total
+  if (!sliderPaused.value) startSlider()
+}
+
+function prevSlide() {
+  const total = featuredGalleryDetail.value?.photos?.length ?? 0
+  featuredPhotoIdx.value = (featuredPhotoIdx.value - 1 + total) % total
+  if (!sliderPaused.value) startSlider()
+}
+
+watch(sliderPaused, (paused) => {
+  if (paused) stopSlider()
+  else startSlider()
+})
+
+watch(featuredGalleryDetail, (detail) => {
+  if (detail?.photos?.length > 1) startSlider()
+})
 
 const fetchPhotoOfDay = async () => {
   try {
-    const { data } = await axios.get('/api/articles/photo-of-day', { params: { per_page: 5, lang: locale.value } })
+    const { data } = await axios.get('/api/galleries', { params: { per_page: 5 } })
     photoOfDay.value = data.data ?? []
+    featuredPhotoIdx.value = 0
+    featuredGalleryDetail.value = null
+    // load featured gallery photos for the preview slider
+    if (photoOfDay.value[0]?.slug) {
+      const { data: detail } = await axios.get(`/api/galleries/${photoOfDay.value[0].slug}`)
+      featuredGalleryDetail.value = detail
+    }
   } catch { /* silent */ }
 }
 
 onMounted(fetchPhotoOfDay)
+onUnmounted(stopSlider)
 
 // ── Videos section ───────────────────────────────────────────────────────────
 const homeVideos        = ref([])
@@ -595,12 +733,6 @@ const formatVideoDate = (d) => d
   ? new Date(d).toLocaleDateString(locale.value === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : ''
 
-const fmtViews = (n) => {
-  if (!n) return '0'
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
-  if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
-  return String(n)
-}
 
 // ── Reload all data when locale changes ──────────────────────────────────────
 watch(locale, () => {

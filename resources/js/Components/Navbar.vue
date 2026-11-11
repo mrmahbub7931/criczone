@@ -5,6 +5,8 @@ import { Search, Menu, X, ChevronRight, ChevronDown, LayoutGrid } from 'lucide-v
 import { useMenu }      from '@/composables/useMenu.js'
 import { useSettings }  from '@/composables/useSettings.js'
 import { useLocale }    from '@/composables/useLocale.js'
+import { useTheme }     from '@/composables/useTheme.js'
+import { useLanguage }  from '@/composables/useLanguage.js'
 import NotificationBell from '@/Components/NotificationBell.vue'
 import axios            from 'axios'
 
@@ -15,6 +17,8 @@ const mobileCatOpen = ref(false)
 const catDropRef  = ref(null)
 
 const { t } = useLocale()
+const { dark, toggle: toggleTheme } = useTheme()
+const { lang, toggleLang } = useLanguage()
 
 const { get: setting } = useSettings()
 const logo = computed(() =>
@@ -30,6 +34,7 @@ const fallbackLinks = [
   { url: '/category/players',  label: 'Players' },
   { url: '/category/series',   label: 'Series' },
   { url: '/category/rankings', label: 'Rankings' },
+  { url: '/games',             label: 'Games' },
 ]
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -127,7 +132,7 @@ onUnmounted(() => {
             leave-from-class="opacity-100"
             leave-to-class="opacity-0 translate-y-1"
           >
-            <div v-if="catOpen" class="absolute top-full right-0 mt-2 w-[420px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+            <div v-if="catOpen" class="absolute top-full right-0 mt-2 w-[420px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
 
               <!-- Pinned section -->
               <div v-if="pinnedCats.length" class="px-4 pt-4 pb-3">
@@ -137,9 +142,9 @@ onUnmounted(() => {
                 <div class="grid grid-cols-2 gap-1.5">
                   <a v-for="cat in pinnedCats" :key="cat.id" :href="`/category/${cat.slug}`"
                     @click="catOpen = false"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group">
+                    class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
                     <span class="w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white shadow-sm" :style="{ backgroundColor: cat.color || '#0D47A1' }" />
-                    <span class="text-sm font-bold text-gray-800 group-hover:text-primary truncate">{{ cat.name }}</span>
+                    <span class="text-sm font-bold text-gray-800 dark:text-slate-200 group-hover:text-primary truncate">{{ cat.name }}</span>
                   </a>
                 </div>
               </div>
@@ -153,15 +158,15 @@ onUnmounted(() => {
                 <div class="grid grid-cols-2 gap-1 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
                   <a v-for="cat in otherCats" :key="cat.id" :href="`/category/${cat.slug}`"
                     @click="catOpen = false"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors group">
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
                     <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: cat.color || '#0D47A1' }" />
-                    <span class="text-sm text-gray-600 group-hover:text-primary truncate">{{ cat.name }}</span>
+                    <span class="text-sm text-gray-600 dark:text-slate-300 group-hover:text-primary truncate">{{ cat.name }}</span>
                   </a>
                 </div>
               </div>
 
               <!-- Footer -->
-              <div class="border-t border-gray-100 px-4 py-2.5 bg-gray-50">
+              <div class="border-t border-gray-100 dark:border-slate-700 px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50">
                 <a href="/categories" @click="catOpen = false"
                   class="flex items-center justify-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors">
                   {{ t('nav.viewAll') }}
@@ -178,12 +183,38 @@ onUnmounted(() => {
       <div class="flex items-center gap-1">
         <NotificationBell />
 
+        <!-- Day / Night toggle -->
+        <button
+          @click="toggleTheme"
+          class="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+          :aria-label="dark ? 'Switch to day mode' : 'Switch to night mode'"
+        >
+          <!-- Moon icon — shown in day mode -->
+          <svg v-if="!dark" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>
+          </svg>
+          <!-- Sun icon — shown in dark mode -->
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+
+        <!-- Language toggle pill -->
+        <button
+          @click="toggleLang"
+          class="hidden sm:flex items-center p-0.5 rounded-full bg-white/10 border border-white/15 hover:border-white/30 transition-all"
+          :aria-label="lang === 'bn' ? 'Switch to English' : 'বাংলায় পড়ুন'"
+        >
+          <span :class="['px-2.5 py-1 rounded-full text-[11px] font-bold transition-all duration-200', lang === 'bn' ? 'bg-white text-primary shadow' : 'text-white/50 hover:text-white/80']">বাং</span>
+          <span :class="['px-2.5 py-1 rounded-full text-[11px] font-bold transition-all duration-200', lang === 'en' ? 'bg-white text-primary shadow' : 'text-white/50 hover:text-white/80']">EN</span>
+        </button>
+
         <a href="/search" class="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all" aria-label="Search">
           <Search class="w-[18px] h-[18px]" />
         </a>
-        <a href="/live-scores" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white text-[11px] font-bold uppercase tracking-wider rounded-full transition-all shadow-lg shadow-secondary/30">
-          <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          Live Scores
+        <a href="/games" class="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider rounded-full transition-all">
+          🎮 Games
         </a>
         <button @click="mobileOpen = !mobileOpen"
           class="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all">
@@ -263,11 +294,12 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <a href="/live-scores" @click="mobileOpen = false"
-            class="flex items-center justify-center gap-2 mx-4 mt-3 mb-2 py-2.5 bg-secondary text-white text-sm font-bold rounded-lg">
-            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            Live Scores
-          </a>
+          <div class="flex gap-2 mx-4 mt-3 mb-2">
+            <a href="/games" @click="mobileOpen = false"
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/10 text-white text-sm font-bold rounded-lg">
+              🎮 Games
+            </a>
+          </div>
         </div>
       </div>
     </Transition>

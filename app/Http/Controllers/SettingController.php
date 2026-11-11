@@ -30,12 +30,31 @@ class SettingController extends Controller
         'newsletter' => ['newsletter_enabled', 'newsletter_subject_prefix',
                           'newsletter_welcome_subject', 'newsletter_welcome_body'],
         'poll'       => ['poll_enabled'],
+        'ai'         => [
+            'translation_provider',  // 'claude' or 'openai'
+            'anthropic_api_key',
+            'openai_api_key',
+        ],
+        'ads'        => [
+            'ad_topbar', 'ad_topbar_enabled',
+            'ad_after_ticker', 'ad_after_ticker_enabled',
+            'ad_home_after_featured', 'ad_home_after_featured_enabled',
+            'ad_home_sidebar_top', 'ad_home_sidebar_top_enabled',
+            'ad_home_sidebar_mid', 'ad_home_sidebar_mid_enabled',
+            'ad_home_sidebar_bottom', 'ad_home_sidebar_bottom_enabled',
+            'ad_article_below_title', 'ad_article_below_title_enabled',
+            'ad_article_middle', 'ad_article_middle_enabled',
+            'ad_article_bottom', 'ad_article_bottom_enabled',
+            'ad_footer_top', 'ad_footer_top_enabled',
+            'ad_popup', 'ad_popup_enabled', 'ad_popup_delay',
+            'ad_floating', 'ad_floating_enabled',
+        ],
     ];
 
     /** GET /api/settings/public — no auth, safe groups only (no smtp passwords) */
     public function publicIndex(): JsonResponse
     {
-        $excluded = ['smtp'];
+        $excluded = ['smtp', 'ai'];
         $all      = Setting::getAllGrouped();
 
         foreach ($excluded as $group) {

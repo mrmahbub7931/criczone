@@ -2,70 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Page;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use App\Models\Article;
+use App\Models\ArticleTranslation;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PageController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    /**
+     * Render the article page with server-side OG meta tags.
+     * Crawlers (Facebook, WhatsApp, etc.) receive correct title/description
+     * regardless of whether the slug is an original or an English en_slug.
+     */
+    public function article(string $slug): Response
     {
-        $pages = Page::when($request->search, fn ($q, $s) =>
-                $q->where('title', 'like', "%{$s}%")
-                  ->orWhere('slug', 'like', "%{$s}%")
-            )
-            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
-            ->latest()
-            ->paginate($request->integer('per_page', 15));
+        // Resolve the article: try original slug first, then en_slug
+        $article     = Article::where('slug', $slug)->where('status', 'published')->first();
+        $translation = null;
 
-        return response()->json($pages);
-    }
+        if (! $article) {
+            $translation = ArticleTranslation::where('en_slug', $slug)->where('status', 'done')->first();
+            if ($translation) {
+                $article = Article::where('id', $translation->article_id)
+                    ->where('status', 'published')
+                    ->first();
+            }
+        }
 
-    public function store(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'slug'             => ['required', 'string', 'max:255', 'unique:pages,slug'],
-            'content'          => ['nullable', 'string'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:500'],
-            'status'           => ['required', Rule::in(['published', 'draft'])],
-        ]);
+        if ($article) {
+            $ogTitle       = $translation ? $translation->title       : $article->title;
+            $ogDescription = $translation ? ($translation->excerpt ?? $article->excerpt) : $article->excerpt;
 
-        return response()->json(Page::create($data), 201);
-    }
+            view()->share('og', [
+                'title'       => $ogTitle . ' – CricZone',
+                'description' => $ogDescription ?: $ogTitle,
+                'image'       => $article->featured_image,
+                'url'         => url("/article/{$slug}"),
+            ]);
+        }
 
-    public function update(Request $request, Page $page): JsonResponse
-    {
-        $data = $request->validate([
-            'title'            => ['sometimes', 'string', 'max:255'],
-            'slug'             => ['sometimes', 'string', 'max:255', Rule::unique('pages')->ignore($page->id)],
-            'content'          => ['nullable', 'string'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:500'],
-            'status'           => ['sometimes', Rule::in(['published', 'draft'])],
-        ]);
-
-        $page->update($data);
-
-        return response()->json($page);
-    }
-
-    public function destroy(Page $page): JsonResponse
-    {
-        $page->delete();
-
-        return response()->json(['message' => 'Page deleted.']);
-    }
-
-    /** Public — fetch by slug, published only. */
-    public function show(string $slug): JsonResponse
-    {
-        $page = Page::where('slug', $slug)
-            ->where('status', 'published')
-            ->firstOrFail();
-
-        return response()->json($page);
+        return Inertia::render('Article/Show', ['slug' => $slug]);
     }
 }

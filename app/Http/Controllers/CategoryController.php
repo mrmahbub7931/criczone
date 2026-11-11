@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Category;
+use App\Traits\HandlesArticleTranslation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
+    use HandlesArticleTranslation;
     public function index(Request $request): JsonResponse
     {
         $categories = Category::query()
@@ -27,17 +29,31 @@ class CategoryController extends Controller
 
         $default = (int) \App\Models\Setting::where('key', 'category_per_page')->value('value') ?: 9;
         $perPage = max(1, min((int) ($request->per_page ?? $default), 48));
+        $langEn  = $request->lang === 'en';
 
         // Include articles where this is the primary category OR added via pivot
-        $articles = Article::with(['author:id,name'])
+        $query = Article::with(['author:id,name'])
             ->where('status', 'published')
             ->where(fn ($q) =>
                 $q->where('category_id', $category->id)
                   ->orWhereHas('categories', fn ($q2) => $q2->where('categories.id', $category->id))
             )
-            ->when(in_array($request->lang, ['bn', 'en']), fn ($q) => $q->where('language', $request->lang))
-            ->orderByDesc('published_at')
-            ->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+            ->when($langEn, fn ($q) => $this->withTranslatedEn($q))
+            ->when($request->lang === 'bn', fn ($q) => $q->where('language', 'bn'))
+            ->orderByDesc('published_at');
+
+        if ($langEn) {
+            $query->with(['translations' => fn ($t) =>
+                $t->where('language', 'en')->where('status', 'done')
+                  ->select('article_id', 'title', 'excerpt', 'en_slug')
+            ]);
+        }
+
+        $articles = $query->paginate($perPage, ['id', 'title', 'slug', 'excerpt', 'featured_image', 'views', 'published_at', 'category_id', 'author_id', 'language']);
+
+        if ($langEn) {
+            $articles->through(fn ($a) => $this->applyTranslation($a));
+        }
 
         return response()->json([
             'category' => $category,

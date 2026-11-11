@@ -1,10 +1,10 @@
 <template>
   <Head v-if="article">
-    <title>{{ article.title }} – CricZone</title>
-    <meta name="description" :content="article.excerpt || article.title" />
+    <title>{{ displayTitle }} – CricZone</title>
+    <meta name="description" :content="displayExcerpt || displayTitle" />
     <meta v-if="article.tags?.length" name="keywords" :content="article.tags.map(t => t.name).join(', ')" />
-    <meta property="og:title" :content="article.title" />
-    <meta property="og:description" :content="article.excerpt || article.title" />
+    <meta property="og:title" :content="displayTitle" />
+    <meta property="og:description" :content="displayExcerpt || displayTitle" />
     <meta v-if="article.featured_image" property="og:image" :content="article.featured_image" />
     <meta property="og:type" content="article" />
   </Head>
@@ -46,48 +46,37 @@
             class="hover:text-primary transition-colors"
           >{{ article.category.name }}</a>
           <span v-if="article.category">/</span>
-          <span class="text-gray-600 line-clamp-1">{{ article.title }}</span>
+          <span class="text-gray-600 line-clamp-1">{{ displayTitle }}</span>
         </nav>
 
-        <!-- Category + language badges -->
-        <div class="mb-4 flex items-center gap-2 flex-wrap">
-          <a
-            v-for="cat in visibleCategories"
-            :key="cat.id"
-            :href="`/category/${cat.slug ?? ''}`"
-            class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-white hover:opacity-80 transition-opacity"
-            :style="{ backgroundColor: cat.color || '#0D47A1' }"
-          >{{ cat.name }}</a>
-          <!-- Fallback if no categories loaded yet -->
-          <span v-if="!visibleCategories.length && article.category"
-            class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-white"
-            :style="{ backgroundColor: article.category?.color || '#0D47A1' }"
-          >{{ article.category.name }}</span>
-          <span v-if="article.language"
-            :class="['inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border', article.language === 'en' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-orange-50 text-orange-700 border-orange-200']"
-          >{{ t(`article.lang.${article.language}`) }}</span>
+
+        <!-- Translation loading indicator -->
+        <div v-if="translating" class="mb-4 flex items-center gap-2 text-sm text-gray-400">
+          <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Translating…
+        </div>
+
+        <!-- No translation notice -->
+        <div v-if="noTranslation" class="mb-4 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>
+          {{ locale === 'en' ? 'English translation not available. Showing original Bengali article.' : 'ইংরেজি অনুবাদ পাওয়া যায়নি। মূল বাংলা নিবন্ধ দেখানো হচ্ছে।' }}
         </div>
 
         <!-- Title -->
-        <h1 :class="['text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-5', isBangla ? 'font-bangla' : '']">
-          {{ article.title }}
+        <h1 :class="['text-3xl sm:text-4xl font-black text-gray-900 dark:text-slate-100 leading-tight mb-5', isBangla ? 'font-bangla' : '']">
+          {{ displayTitle }}
         </h1>
 
         <!-- Meta row -->
-        <div class="flex flex-wrap items-center gap-5 text-sm text-gray-500 mb-8 pb-6 border-b border-gray-100">
+        <div class="flex flex-wrap items-center gap-5 text-sm text-gray-500 dark:text-slate-400 mb-8 pb-6 border-b border-gray-100 dark:border-slate-700">
           <span class="flex items-center gap-1.5">
             <Calendar :size="15" class="text-gray-400" />
             {{ formattedDate }}
           </span>
-          <span class="flex items-center gap-1.5">
-            <Eye :size="15" class="text-gray-400" />
-            {{ article.views.toLocaleString() }} {{ t('article.views') }}
-          </span>
-          <span class="flex items-center gap-1.5">
-            <Clock :size="15" class="text-gray-400" />
-            {{ readTime }}
-          </span>
         </div>
+
+        <!-- Article below title ad -->
+        <AdSlot position="article_below_title" />
 
         <!-- Video embed (takes priority over featured image when present) -->
         <div v-if="article.video_embed_url" class="mb-8 rounded-2xl overflow-hidden shadow-lg">
@@ -107,24 +96,31 @@
           <img
             :src="article.featured_image"
             :alt="article.title"
-            class="w-full h-[350px] sm:h-[420px] object-cover"
+            class="w-full h-[350px] sm:h-[420px] object-cover object-top"
           />
         </div>
 
         <!-- Excerpt -->
-        <p v-if="article.excerpt"
-          :class="['text-lg text-gray-600 mb-8 font-medium border-l-4 border-secondary pl-5', isBangla ? 'excerpt-bangla not-italic' : 'leading-relaxed italic']">
-          {{ article.excerpt }}
+        <p v-if="displayExcerpt"
+          :class="['text-lg text-gray-600 dark:text-slate-300 mb-8 font-medium border-l-4 border-secondary pl-5', isBangla ? 'excerpt-bangla not-italic' : 'leading-relaxed italic']">
+          {{ displayExcerpt }}
         </p>
 
-        <!-- Content -->
-        <div
-          :class="['prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-blockquote:border-secondary prose-blockquote:text-gray-600 article-content', isBangla ? 'prose-bangla' : '']"
-          v-html="article.content"
+        <!-- Content (split in two to inject mid-article ad) -->
+        <div :class="['prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 dark:prose-headings:text-slate-100 prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-blockquote:border-secondary prose-blockquote:text-gray-600 dark:prose-blockquote:text-slate-400 article-content dark:text-slate-300', isBangla ? 'prose-bangla' : '']"
+          v-html="contentParts.top"
+        />
+        <AdSlot v-if="contentParts.bottom" position="article_middle" />
+        <div v-if="contentParts.bottom"
+          :class="['prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 dark:prose-headings:text-slate-100 prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-blockquote:border-secondary prose-blockquote:text-gray-600 dark:prose-blockquote:text-slate-400 article-content dark:text-slate-300', isBangla ? 'prose-bangla' : '']"
+          v-html="contentParts.bottom"
         />
 
+        <!-- Article bottom ad -->
+        <AdSlot position="article_bottom" />
+
         <!-- ── Share Buttons ──────────────────────────────────────────────── -->
-        <div class="mt-10 pt-6 border-t border-gray-100">
+        <div class="mt-10 pt-6 border-t border-gray-100 dark:border-slate-700">
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{{ t('article.share') }}</p>
           <div class="flex flex-wrap items-center gap-2">
             <!-- Facebook -->
@@ -160,7 +156,7 @@
               class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors"
               :class="copied
                 ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-600'"
+                : 'bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300'"
             >
               <svg v-if="!copied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
@@ -170,14 +166,14 @@
         </div>
 
         <!-- Tags -->
-        <div v-if="article.tags?.length" class="mt-8 pt-6 border-t border-gray-100">
+        <div v-if="article.tags?.length" class="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Tags</p>
           <div class="flex flex-wrap gap-2">
             <a
               v-for="tag in article.tags"
               :key="tag.id"
               :href="`/tag/${tag.slug}`"
-              class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary hover:text-white transition-colors"
+              class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-primary hover:text-white transition-colors"
             >
               <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
               {{ tag.name }}
@@ -203,7 +199,7 @@
       <section v-if="related.length" class="mt-14">
         <div class="flex items-center gap-3 mb-6">
           <div class="h-6 w-1 bg-secondary rounded-full" />
-          <h2 class="text-xl font-black text-gray-900 uppercase tracking-tight">
+          <h2 class="text-xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">
             {{ t('article.relatedNews') }}
           </h2>
         </div>
@@ -212,14 +208,14 @@
             v-for="rel in related"
             :key="rel.id"
             :href="`/article/${rel.slug}`"
-            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            class="group bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
           >
             <div class="h-40 overflow-hidden bg-gray-100">
               <img
                 v-if="rel.featured_image"
                 :src="rel.featured_image"
                 :alt="rel.title"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
               />
               <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
                 <span class="text-3xl">🏏</span>
@@ -231,10 +227,10 @@
                 class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider text-white"
                 :style="{ backgroundColor: rel.category.color || '#0D47A1' }"
               >{{ rel.category.name }}</span>
-              <h3 class="mt-2 text-sm font-bold text-gray-800 group-hover:text-primary transition-colors leading-snug line-clamp-2">
+              <h3 class="mt-2 text-sm font-bold text-gray-800 dark:text-slate-200 group-hover:text-primary transition-colors leading-snug line-clamp-2">
                 {{ rel.title }}
               </h3>
-              <p class="mt-1.5 text-xs text-gray-400">{{ formatDate(rel.published_at) }}</p>
+              <p class="mt-1.5 text-xs text-gray-400 dark:text-slate-500">{{ formatDate(rel.published_at) }}</p>
             </div>
           </a>
         </div>
@@ -249,20 +245,70 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import MainLayout from '@/Layouts/MainLayout.vue'
-import { Calendar, Eye, Clock, ChevronLeft } from 'lucide-vue-next'
-import { useLocale }   from '@/composables/useLocale.js'
-import { useSettings } from '@/composables/useSettings.js'
+import AdSlot from '@/Components/AdSlot.vue'
+import { Calendar, ChevronLeft } from 'lucide-vue-next'
+import { useLocale }    from '@/composables/useLocale.js'
+import { useSettings }  from '@/composables/useSettings.js'
+import { useLanguage }  from '@/composables/useLanguage.js'
 
 const { locale, t } = useLocale()
 const { get: setting } = useSettings()
+const { lang } = useLanguage()
 
 const props = defineProps({ slug: { type: String, required: true } })
 
-const article  = ref(null)
-const loading  = ref(true)
-const notFound = ref(false)
-const related  = ref([])
-const copied   = ref(false)
+const article      = ref(null)
+const loading      = ref(true)
+const notFound     = ref(false)
+const related      = ref([])
+const copied       = ref(false)
+const translation  = ref(null)   // translated version when lang !== article.language
+const translating  = ref(false)  // loading state for translation fetch
+
+// Which version to display — translated or original
+const displayTitle   = computed(() => translation.value?.title   ?? article.value?.title)
+const displayExcerpt = computed(() => translation.value?.excerpt ?? article.value?.excerpt)
+const displayContent = computed(() => translation.value?.content ?? article.value?.content)
+const isTranslated   = computed(() => !!translation.value)
+// Show "no translation" notice when user wants a language the article doesn't have
+const noTranslation  = computed(() =>
+  !translating.value && !isTranslated.value &&
+  article.value && lang.value !== article.value.language
+)
+
+async function fetchRelated() {
+  if (!article.value) return
+  try {
+    const { data } = await axios.get(`/api/articles/${props.slug}/related`, { params: { lang: lang.value } })
+    related.value = data ?? []
+  } catch {
+    related.value = []
+  }
+}
+
+// Fetch translation when lang changes (and differs from article's own language)
+async function fetchTranslation() {
+  if (!article.value) return
+  const targetLang = lang.value
+  if (targetLang === article.value.language) {
+    translation.value = null
+    return
+  }
+  translating.value = true
+  try {
+    const { data } = await axios.get(`/api/article/${props.slug}/translation/${targetLang}`)
+    translation.value = data
+  } catch {
+    translation.value = null
+  } finally {
+    translating.value = false
+  }
+}
+
+watch(lang, () => {
+  fetchTranslation()
+  fetchRelated()
+})
 
 const shortUrl = computed(() =>
   article.value?.short_url?.code
@@ -281,21 +327,29 @@ const visibleCategories = computed(() => {
 
 const formattedDate = computed(() => {
   if (!article.value?.published_at) return ''
-  const loc = article.value.language === 'bn' ? 'bn-BD' : 'en-US'
+  const loc = lang.value === 'en' ? 'en-US' : 'bn-BD'
   return new Date(article.value.published_at).toLocaleDateString(loc, {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 })
 
-const readTime = computed(() => {
-  if (!article.value?.content) return '3 min read'
-  const words = article.value.content.replace(/<[^>]+>/g, '').split(/\s+/).length
-  return `${Math.max(1, Math.ceil(words / 200))} min read`
+// Detect if the article is primarily in Bengali (Unicode range U+0980–U+09FF)
+// Split article content after 2nd </p> to inject a mid-article ad
+const contentParts = computed(() => {
+  const html = displayContent.value ?? ''
+  let count = 0, pos = 0
+  while (count < 2) {
+    const idx = html.indexOf('</p>', pos)
+    if (idx === -1) break
+    pos = idx + 4
+    count++
+  }
+  if (count < 2) return { top: html, bottom: '' }
+  return { top: html.slice(0, pos), bottom: html.slice(pos) }
 })
 
-// Detect if the article is primarily in Bengali (Unicode range U+0980–U+09FF)
 const isBangla = computed(() => {
-  const text = (article.value?.title ?? '') + (article.value?.excerpt ?? '')
+  const text = (displayTitle.value ?? '') + (displayExcerpt.value ?? '')
   const banglaChars = (text.match(/[ঀ-৿]/g) ?? []).length
   return banglaChars > text.length * 0.2   // >20% Bengali chars = Bengali article
 })
@@ -379,10 +433,11 @@ onMounted(async () => {
   try {
     const [artRes, relRes] = await Promise.allSettled([
       axios.get(`/api/articles/${props.slug}`),
-      axios.get(`/api/articles/${props.slug}/related`),
+      axios.get(`/api/articles/${props.slug}/related`, { params: { lang: lang.value } }),
     ])
     if (artRes.status === 'fulfilled') {
       article.value = artRes.value.data
+      await fetchTranslation()
     } else {
       notFound.value = true
     }

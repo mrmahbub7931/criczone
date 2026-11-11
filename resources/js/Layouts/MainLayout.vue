@@ -10,15 +10,21 @@
     <link v-if="favicon" rel="icon" :href="favicon" />
   </Head>
 
-  <div class="min-h-screen flex flex-col bg-gray-50">
+  <div class="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+    <AdSlot position="topbar" />
     <Navbar />
     <BreakingNewsTicker />
+    <AdSlot position="after_ticker" />
 
     <main class="flex-grow">
       <slot />
     </main>
 
+    <AdSlot position="footer_top" />
     <Footer />
+
+    <PopupAd />
+    <FloatingAd />
   </div>
 </template>
 
@@ -28,6 +34,9 @@ import { Head } from '@inertiajs/vue3'
 import Navbar              from '@/Components/Navbar.vue'
 import Footer              from '@/Components/Footer.vue'
 import BreakingNewsTicker  from '@/Components/BreakingNewsTicker.vue'
+import AdSlot              from '@/Components/AdSlot.vue'
+import PopupAd             from '@/Components/PopupAd.vue'
+import FloatingAd          from '@/Components/FloatingAd.vue'
 import { useSettings }     from '@/composables/useSettings.js'
 
 const { get: setting, loaded } = useSettings()

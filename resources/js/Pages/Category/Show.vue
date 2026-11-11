@@ -40,8 +40,8 @@
           <div class="flex items-center gap-3">
             <div class="h-10 w-1.5 rounded-full" :style="{ backgroundColor: category.color || '#0D47A1' }" />
             <div>
-              <h1 class="text-3xl font-black text-gray-900 uppercase tracking-tight">{{ category.name }}</h1>
-              <p v-if="category.description" class="text-sm text-gray-500 mt-0.5">{{ category.description }}</p>
+              <h1 class="text-3xl font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">{{ category.name }}</h1>
+              <p v-if="category.description" class="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{{ category.description }}</p>
             </div>
           </div>
           <span class="ml-auto text-sm font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
@@ -54,7 +54,7 @@
           <div
             v-for="article in articles"
             :key="article.id"
-            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg cursor-pointer transition-all duration-300 hover:-translate-y-1"
+            class="group bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg cursor-pointer transition-all duration-300 hover:-translate-y-1"
             @click="$router.push ? null : (window.location.href = `/article/${article.slug}`)"
           >
             <a :href="`/article/${article.slug}`" class="block">
@@ -62,7 +62,7 @@
                 <img
                   :src="article.featured_image || `https://placehold.co/800x450/${(category.color||'#0D47A1').replace('#','')}/white?text=${encodeURIComponent(category.name)}`"
                   :alt="article.title"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                 />
                 <span
                   class="absolute top-3 left-3 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm"
@@ -70,11 +70,11 @@
                 >{{ category.name }}</span>
               </div>
               <div class="p-4">
-                <h3 class="font-bold text-gray-900 leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors duration-200">
+                <h3 class="font-bold text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors duration-200">
                   {{ article.title }}
                 </h3>
-                <p class="text-sm text-gray-500 line-clamp-2 mb-3">{{ article.excerpt }}</p>
-                <div class="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
+                <p class="text-sm text-gray-500 dark:text-slate-400 line-clamp-2 mb-3">{{ article.excerpt }}</p>
+                <div class="flex items-center justify-between text-xs text-gray-400 dark:text-slate-500 pt-3 border-t border-gray-100 dark:border-slate-700">
                   <span class="flex items-center gap-1.5">
                     <User :size="12" /> {{ article.author?.name || 'Staff Writer' }}
                   </span>

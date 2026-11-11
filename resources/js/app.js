@@ -1,6 +1,10 @@
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { ZiggyVue } from 'ziggy-js'
+import { useTheme } from '@/composables/useTheme.js'
+
+// Apply saved theme before first render to prevent flash
+useTheme().init()
 
 createInertiaApp({
     resolve: name => {
